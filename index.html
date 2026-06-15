@@ -21,15 +21,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .form-group input,.form-group select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none}
 .form-group input:focus{border-color:var(--accent)}
 .page{display:none;min-height:100vh}
-.page.active{display:block}
-/* Login Page */
-#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--primary) 0%,#1e3a5f 100%)}
+/* CRITICAL FIX: login page must be display:none by default, only flex when active */
+#login-page{display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--primary) 0%,#1e3a5f 100%)}
+#login-page.active{display:flex}
 .login-box{background:#fff;padding:40px;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .login-box h1{text-align:center;margin-bottom:8px;color:var(--primary)}
 .login-box p.subtitle{text-align:center;color:var(--muted);margin-bottom:24px;font-size:14px}
 .login-toggle{text-align:center;margin-top:16px;font-size:14px;color:var(--muted)}
 .login-toggle a{color:var(--accent);cursor:pointer;text-decoration:underline}
-/* App Layout */
 #app-layout{display:none;min-height:100vh}
 #app-layout.active{display:flex;flex-direction:column}
 .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
@@ -81,7 +80,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .property-card p{color:var(--muted);font-size:13px}
 .unit-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--border)}
 .unit-row:last-child{border-bottom:none}
-.receipt-frame{width:100%;height:600px;border:1px solid var(--border);border-radius:8px}
 @media (max-width:768px){.sidebar{display:none}.main-content{margin-left:0}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
 </style>
 <base target="_blank">
@@ -256,44 +254,56 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <script>
 // ==================== CONFIG ====================
+// REPLACE THIS WITH YOUR REAL ANON KEY FROM SUPABASE DASHBOARD > SETTINGS > API
 const SUPABASE_URL = 'https://jolpglrgumfvddalftfm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvbHBnbHJndW1mdmRkYWxmdGZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzIzNjksImV4cCI6MjA5NzEwODM2OX0.2Rh0Bv3I2GSVRwWv6JKUFESRZKytAUXC12wRnNqgotM';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const AppState = { user: null, profile: null, properties: [], units: [], tenants: [], leases: [], payments: [], notifications: [] };
-let isAuthHandling = false;
 
 function $(id) { return document.getElementById(id); }
 
 // ==================== AUTH ====================
 async function handleLogin(e) {
   e.preventDefault();
-  const email = $('login-email').value;
-  const password = $('login-password').value;
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) { showToast(error.message, 'error'); return; }
-  if (data && data.user) {
-    AppState.user = data.user;
-    await loadProfile();
-    enterApp();
-    showToast('Welcome back!');
+  try {
+    const email = $('login-email').value;
+    const password = $('login-password').value;
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { showToast(error.message, 'error'); return; }
+    if (data && data.user) {
+      AppState.user = data.user;
+      await loadProfile();
+      enterApp();
+      showToast('Welcome back!');
+    } else {
+      showToast('Login failed - no user returned', 'error');
+    }
+  } catch (err) {
+    console.error('Login crash:', err);
+    showToast('Login error: ' + err.message, 'error');
   }
 }
 
 async function handleRegister(e) {
   e.preventDefault();
-  const name = $('reg-name').value;
-  const email = $('reg-email').value;
-  const password = $('reg-password').value;
-  const phone = $('reg-phone').value;
-  const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: name, phone: phone } } });
-  if (error) { showToast(error.message, 'error'); return; }
-  if (data && data.user) {
-    AppState.user = data.user;
-    await supabaseClient.from('profiles').insert({ id: data.user.id, full_name: name, phone: phone, email: email });
-    await loadProfile();
-    enterApp();
-    showToast('Account created!');
+  try {
+    const name = $('reg-name').value;
+    const email = $('reg-email').value;
+    const password = $('reg-password').value;
+    const phone = $('reg-phone').value;
+    const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: name, phone: phone } } });
+    if (error) { showToast(error.message, 'error'); return; }
+    if (data && data.user) {
+      AppState.user = data.user;
+      await supabaseClient.from('profiles').insert({ id: data.user.id, full_name: name, phone: phone, email: email });
+      await loadProfile();
+      enterApp();
+      showToast('Account created!');
+    }
+  } catch (err) {
+    console.error('Register crash:', err);
+    showToast('Registration error: ' + err.message, 'error');
   }
 }
 
@@ -347,29 +357,37 @@ function showPage(page) {
 // ==================== DATA LOADING ====================
 async function loadProfile() {
   if (!AppState.user) return;
-  const { data } = await supabaseClient.from('profiles').select('*').eq('id', AppState.user.id).single();
-  AppState.profile = data;
-  $('user-name').textContent = data ? data.full_name || 'User' : 'User';
+  try {
+    const { data } = await supabaseClient.from('profiles').select('*').eq('id', AppState.user.id).single();
+    AppState.profile = data;
+    $('user-name').textContent = data ? data.full_name || 'User' : 'User';
+  } catch (err) {
+    console.error('loadProfile error:', err);
+  }
 }
 
 async function loadAllData() {
   if (!AppState.user) return;
-  const uid = AppState.user.id;
-  const [{ data: props }, { data: units }, { data: tenants }, { data: leases }, { data: payments }, { data: notifications }] = await Promise.all([
-    supabaseClient.from('properties').select('*').eq('landlord_id', uid),
-    supabaseClient.from('units').select('*, properties(name)').eq('properties.landlord_id', uid),
-    supabaseClient.from('tenants').select('*').eq('landlord_id', uid),
-    supabaseClient.from('leases').select('*, tenants(full_name), units(unit_number, properties(name))').eq('units.properties.landlord_id', uid),
-    supabaseClient.from('payments').select('*, leases(tenants(full_name), units(unit_number, properties(name)))').eq('leases.units.properties.landlord_id', uid).order('payment_date', { ascending: false }).limit(10),
-    supabaseClient.from('notifications').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20)
-  ]);
-  AppState.properties = props || [];
-  AppState.units = units || [];
-  AppState.tenants = tenants || [];
-  AppState.leases = leases || [];
-  AppState.payments = payments || [];
-  AppState.notifications = notifications || [];
-  loadDashboard();
+  try {
+    const uid = AppState.user.id;
+    const [{ data: props }, { data: units }, { data: tenants }, { data: leases }, { data: payments }, { data: notifications }] = await Promise.all([
+      supabaseClient.from('properties').select('*').eq('landlord_id', uid),
+      supabaseClient.from('units').select('*, properties(name)').eq('properties.landlord_id', uid),
+      supabaseClient.from('tenants').select('*').eq('landlord_id', uid),
+      supabaseClient.from('leases').select('*, tenants(full_name), units(unit_number, properties(name))').eq('units.properties.landlord_id', uid),
+      supabaseClient.from('payments').select('*, leases(tenants(full_name), units(unit_number, properties(name)))').eq('leases.units.properties.landlord_id', uid).order('payment_date', { ascending: false }).limit(10),
+      supabaseClient.from('notifications').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20)
+    ]);
+    AppState.properties = props || [];
+    AppState.units = units || [];
+    AppState.tenants = tenants || [];
+    AppState.leases = leases || [];
+    AppState.payments = payments || [];
+    AppState.notifications = notifications || [];
+    loadDashboard();
+  } catch (err) {
+    console.error('loadAllData error:', err);
+  }
 }
 
 // ==================== DASHBOARD ====================
@@ -384,14 +402,14 @@ function loadDashboard() {
   const paymentsHtml = AppState.payments.length ? '<table class="table"><thead><tr><th>Date</th><th>Tenant</th><th>Amount</th><th>Status</th></tr></thead><tbody>' +
     AppState.payments.map(p => {
       const t = p.leases?.tenants?.full_name || '-';
-      return `<tr><td>${p.payment_date || '-'}</td><td>${t}</td><td>${p.amount || 0} ${p.currency || 'USD'}</td><td><span class="badge badge-green">${p.status || 'completed'}</span></td></tr>`;
+      return '<tr><td>' + (p.payment_date || '-') + '</td><td>' + t + '</td><td>' + (p.amount || 0) + ' ' + (p.currency || 'USD') + '</td><td><span class="badge badge-green">' + (p.status || 'completed') + '</span></td></tr>';
     }).join('') + '</tbody></table>' : '<div class="empty-state"><p>No payments yet</p></div>';
   $('dash-payments').innerHTML = paymentsHtml;
 
   const today = new Date().toISOString().split('T')[0];
   const upcoming = AppState.leases.filter(l => l.status === 'active' && l.end_date >= today).sort((a,b) => a.end_date.localeCompare(b.end_date)).slice(0,5);
   const expiryHtml = upcoming.length ? '<table class="table"><thead><tr><th>Tenant</th><th>Property</th><th>End Date</th></tr></thead><tbody>' +
-    upcoming.map(l => `<tr><td>${l.tenants?.full_name || '-'}</td><td>${l.units?.properties?.name || '-'} ${l.units?.unit_number || ''}</td><td>${l.end_date}</td></tr>`).join('') + '</tbody></table>' : '<div class="empty-state"><p>No upcoming expirations</p></div>';
+    upcoming.map(l => '<tr><td>' + (l.tenants?.full_name || '-') + '</td><td>' + (l.units?.properties?.name || '-') + ' ' + (l.units?.unit_number || '') + '</td><td>' + l.end_date + '</td></tr>').join('') + '</tbody></table>' : '<div class="empty-state"><p>No upcoming expirations</p></div>';
   $('dash-expiry').innerHTML = expiryHtml;
 }
 
@@ -399,49 +417,35 @@ function loadDashboard() {
 function renderProperties() {
   const container = $('properties-list');
   if (!AppState.properties.length) { container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No properties yet</h3><p>Add your first property to get started</p></div>'; return; }
-  container.innerHTML = AppState.properties.map(p => `
-    <div class="property-card" onclick="viewProperty('${p.id}')">
-      <div style="height:160px;background:linear-gradient(135deg,#0f172a,#1e3a5f);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px;font-weight:700">${p.name?.charAt(0) || 'P'}</div>
-      <div class="property-card-body">
-        <h4>${p.name || 'Unnamed'}</h4>
-        <p>${p.address || 'No address'} &bull; ${p.type || 'Residential'}</p>
-        <p style="margin-top:8px">${AppState.units.filter(u => u.property_id === p.id).length} units</p>
-      </div>
-    </div>`).join('');
+  container.innerHTML = AppState.properties.map(p => 
+    '<div class="property-card" onclick="viewProperty('' + p.id + '')">' +
+    '<div style="height:160px;background:linear-gradient(135deg,#0f172a,#1e3a5f);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px;font-weight:700">' + (p.name?.charAt(0) || 'P') + '</div>' +
+    '<div class="property-card-body"><h4>' + (p.name || 'Unnamed') + '</h4><p>' + (p.address || 'No address') + ' &bull; ' + (p.type || 'Residential') + '</p><p style="margin-top:8px">' + AppState.units.filter(u => u.property_id === p.id).length + ' units</p></div></div>'
+  ).join('');
 }
 
 function viewProperty(pid) {
   const p = AppState.properties.find(x => x.id === pid);
   if (!p) return;
   const units = AppState.units.filter(u => u.property_id === pid);
-  const html = `
-    <h3>${p.name}</h3>
-    <p style="color:var(--muted);margin-bottom:16px">${p.address || ''}<br>${p.type || ''} &bull; ${p.city || ''} ${p.country || ''}</p>
-    <h4 style="margin-bottom:12px">Units (${units.length})</h4>
-    ${units.length ? units.map(u => `
-      <div class="unit-row">
-        <div><strong>Unit ${u.unit_number}</strong><br><span style="color:var(--muted);font-size:13px">${u.bedrooms || 0}br / ${u.bathrooms || 0}ba &bull; ${u.area || 0} sqft</span></div>
-        <span class="badge ${u.status === 'occupied' ? 'badge-green' : 'badge-gray'}">${u.status || 'unknown'}</span>
-      </div>
-    `).join('') : '<p>No units in this property</p>'}
-    <div style="margin-top:20px;text-align:right">
-      <button class="btn btn-primary" onclick="closeModal();openModal('unit','${pid}')">+ Add Unit</button>
-    </div>`;
+  const html = '<h3>' + p.name + '</h3><p style="color:var(--muted);margin-bottom:16px">' + (p.address || '') + '<br>' + (p.type || '') + ' &bull; ' + (p.city || '') + ' ' + (p.country || '') + '</p>' +
+    '<h4 style="margin-bottom:12px">Units (' + units.length + ')</h4>' +
+    (units.length ? units.map(u => '<div class="unit-row"><div><strong>Unit ' + u.unit_number + '</strong><br><span style="color:var(--muted);font-size:13px">' + (u.bedrooms || 0) + 'br / ' + (u.bathrooms || 0) + 'ba &bull; ' + (u.area || 0) + ' sqft</span></div><span class="badge ' + (u.status === 'occupied' ? 'badge-green' : 'badge-gray') + '">' + (u.status || 'unknown') + '</span></div>').join('') : '<p>No units in this property</p>') +
+    '<div style="margin-top:20px;text-align:right"><button class="btn btn-primary" onclick="closeModal();openModal('unit','' + pid + '')">+ Add Unit</button></div>';
   $('modal-body').innerHTML = html;
   $('modal-overlay').classList.add('active');
 }
 
 // ==================== UNITS ====================
 function renderUnits() {
-  const search = ($('unit-search')?.value || '').toLowerCase();
+  const searchVal = ($('unit-search')?.value || '').toLowerCase();
   const filtered = AppState.units.filter(u => {
-    const term = search;
-    return (u.unit_number || '').toLowerCase().includes(term) || (u.properties?.name || '').toLowerCase().includes(term);
+    return (u.unit_number || '').toLowerCase().includes(searchVal) || (u.properties?.name || '').toLowerCase().includes(searchVal);
   });
   const container = $('units-list');
   if (!filtered.length) { container.innerHTML = '<div class="empty-state"><p>No units found</p></div>'; return; }
   container.innerHTML = '<table class="table"><thead><tr><th>Property</th><th>Unit</th><th>Type</th><th>Rent</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
-    filtered.map(u => `<tr><td>${u.properties?.name || '-'}</td><td>${u.unit_number || '-'}</td><td>${u.type || '-'}</td><td>${u.rent_amount || 0} ${u.currency || 'USD'}</td><td><span class="badge ${u.status === 'occupied' ? 'badge-green' : 'badge-gray'}">${u.status || 'unknown'}</span></td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal('lease',null,'${u.id}')">Lease</button></td></tr>`).join('') + '</tbody></table>';
+    filtered.map(u => '<tr><td>' + (u.properties?.name || '-') + '</td><td>' + (u.unit_number || '-') + '</td><td>' + (u.type || '-') + '</td><td>' + (u.rent_amount || 0) + ' ' + (u.currency || 'USD') + '</td><td><span class="badge ' + (u.status === 'occupied' ? 'badge-green' : 'badge-gray') + '">' + (u.status || 'unknown') + '</span></td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal('lease',null,'' + u.id + '')">Lease</button></td></tr>').join('') + '</tbody></table>';
 }
 
 // ==================== TENANTS ====================
@@ -449,7 +453,7 @@ function renderTenants() {
   const container = $('tenants-list');
   if (!AppState.tenants.length) { container.innerHTML = '<div class="empty-state"><h3>No tenants yet</h3><p>Add tenants and link them to leases</p></div>'; return; }
   container.innerHTML = '<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>ID Number</th><th>Actions</th></tr></thead><tbody>' +
-    AppState.tenants.map(t => `<tr><td>${t.full_name || '-'}</td><td>${t.email || '-'}</td><td>${t.phone || '-'}</td><td>${t.id_number || '-'}</td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal('lease',null,null,'${t.id}')">New Lease</button></td></tr>`).join('') + '</tbody></table>';
+    AppState.tenants.map(t => '<tr><td>' + (t.full_name || '-') + '</td><td>' + (t.email || '-') + '</td><td>' + (t.phone || '-') + '</td><td>' + (t.id_number || '-') + '</td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal('lease',null,null,'' + t.id + '')">New Lease</button></td></tr>').join('') + '</tbody></table>';
 }
 
 // ==================== LEASES ====================
@@ -457,7 +461,7 @@ function renderLeases() {
   const container = $('leases-list');
   if (!AppState.leases.length) { container.innerHTML = '<div class="empty-state"><h3>No leases yet</h3><p>Create leases to track tenant agreements</p></div>'; return; }
   container.innerHTML = '<table class="table"><thead><tr><th>Tenant</th><th>Property</th><th>Unit</th><th>Start</th><th>End</th><th>Rent</th><th>Status</th></tr></thead><tbody>' +
-    AppState.leases.map(l => `<tr><td>${l.tenants?.full_name || '-'}</td><td>${l.units?.properties?.name || '-'}</td><td>${l.units?.unit_number || '-'}</td><td>${l.start_date || '-'}</td><td>${l.end_date || '-'}</td><td>${l.rent_amount || 0} ${l.currency || 'USD'}</td><td><span class="badge ${l.status === 'active' ? 'badge-green' : 'badge-red'}">${l.status || 'unknown'}</span></td></tr>`).join('') + '</tbody></table>';
+    AppState.leases.map(l => '<tr><td>' + (l.tenants?.full_name || '-') + '</td><td>' + (l.units?.properties?.name || '-') + '</td><td>' + (l.units?.unit_number || '-') + '</td><td>' + (l.start_date || '-') + '</td><td>' + (l.end_date || '-') + '</td><td>' + (l.rent_amount || 0) + ' ' + (l.currency || 'USD') + '</td><td><span class="badge ' + (l.status === 'active' ? 'badge-green' : 'badge-red') + '">' + (l.status || 'unknown') + '</span></td></tr>').join('') + '</tbody></table>';
 }
 
 // ==================== PAYMENTS ====================
@@ -465,23 +469,16 @@ function renderPayments() {
   const container = $('payments-list');
   if (!AppState.payments.length) { container.innerHTML = '<div class="empty-state"><h3>No payments recorded</h3><p>Record rent payments to generate receipts</p></div>'; return; }
   container.innerHTML = '<table class="table"><thead><tr><th>Receipt #</th><th>Date</th><th>Tenant</th><th>Property</th><th>Amount</th><th>Method</th><th>Actions</th></tr></thead><tbody>' +
-    AppState.payments.map(p => `<tr><td>${p.receipt_number || '-'}</td><td>${p.payment_date || '-'}</td><td>${p.leases?.tenants?.full_name || '-'}</td><td>${p.leases?.units?.properties?.name || '-'} ${p.leases?.units?.unit_number || ''}</td><td>${p.amount || 0} ${p.currency || 'USD'}</td><td>${p.payment_method || 'cash'}</td><td>${p.receipt_url ? `<a href="${p.receipt_url}" target="_blank" class="btn btn-primary" style="padding:4px 10px;font-size:12px">View Receipt</a>` : '<span style="font-size:12px;color:var(--muted)">No receipt</span>'}</td></tr>`).join('') + '</tbody></table>';
+    AppState.payments.map(p => '<tr><td>' + (p.receipt_number || '-') + '</td><td>' + (p.payment_date || '-') + '</td><td>' + (p.leases?.tenants?.full_name || '-') + '</td><td>' + (p.leases?.units?.properties?.name || '-') + ' ' + (p.leases?.units?.unit_number || '') + '</td><td>' + (p.amount || 0) + ' ' + (p.currency || 'USD') + '</td><td>' + (p.payment_method || 'cash') + '</td><td>' + (p.receipt_url ? '<a href="' + p.receipt_url + '" target="_blank" class="btn btn-primary" style="padding:4px 10px;font-size:12px">View Receipt</a>' : '<span style="font-size:12px;color:var(--muted)">No receipt</span>') + '</td></tr>').join('') + '</tbody></table>';
 }
 
 // ==================== NOTIFICATIONS ====================
 function renderNotifications() {
   const container = $('notifications-list');
   if (!AppState.notifications.length) { container.innerHTML = '<div class="empty-state"><p>No notifications</p></div>'; return; }
-  container.innerHTML = AppState.notifications.map(n => `
-    <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <p style="font-weight:500">${n.type || 'Notification'}</p>
-        <p style="color:var(--muted);font-size:13px">${n.message || ''}</p>
-        <p style="color:var(--muted);font-size:12px;margin-top:4px">${n.created_at ? new Date(n.created_at).toLocaleString() : ''}</p>
-      </div>
-      <span class="badge ${n.status === 'sent' ? 'badge-green' : n.status === 'failed' ? 'badge-red' : 'badge-yellow'}">${n.status || 'pending'}</span>
-    </div>
-  `).join('');
+  container.innerHTML = AppState.notifications.map(n => 
+    '<div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"><div><p style="font-weight:500">' + (n.type || 'Notification') + '</p><p style="color:var(--muted);font-size:13px">' + (n.message || '') + '</p><p style="color:var(--muted);font-size:12px;margin-top:4px">' + (n.created_at ? new Date(n.created_at).toLocaleString() : '') + '</p></div><span class="badge ' + (n.status === 'sent' ? 'badge-green' : n.status === 'failed' ? 'badge-red' : 'badge-yellow') + '">' + (n.status || 'pending') + '</span></div>'
+  ).join('');
 }
 
 // ==================== SETTINGS ====================
@@ -497,76 +494,75 @@ function loadSettings() {
 async function handleSettingsSave(e) {
   e.preventDefault();
   if (!AppState.user) return;
-  const updates = {
-    full_name: $('set-name').value,
-    business_name: $('set-business').value,
-    phone: $('set-phone').value,
-    telegram_chat_id: $('set-telegram').value,
-    telegram_bot_enabled: $('set-telegram-enabled').checked
-  };
-  const { error } = await supabaseClient.from('profiles').update(updates).eq('id', AppState.user.id);
-  if (error) { showToast(error.message, 'error'); return; }
-  AppState.profile = { ...AppState.profile, ...updates };
-  $('user-name').textContent = updates.full_name || 'User';
-  showToast('Settings saved!');
+  try {
+    const updates = {
+      full_name: $('set-name').value,
+      business_name: $('set-business').value,
+      phone: $('set-phone').value,
+      telegram_chat_id: $('set-telegram').value,
+      telegram_bot_enabled: $('set-telegram-enabled').checked
+    };
+    const { error } = await supabaseClient.from('profiles').update(updates).eq('id', AppState.user.id);
+    if (error) { showToast(error.message, 'error'); return; }
+    AppState.profile = { ...AppState.profile, ...updates };
+    $('user-name').textContent = updates.full_name || 'User';
+    showToast('Settings saved!');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 }
 
 // ==================== MODALS & FORMS ====================
 function openModal(type, propertyId, unitId, tenantId) {
   let html = '';
   if (type === 'property') {
-    html = `<h3>Add Property</h3><form onsubmit="saveProperty(event)">
-      <div class="form-group"><label>Name</label><input type="text" id="prop-name" required></div>
-      <div class="form-group"><label>Address</label><input type="text" id="prop-address"></div>
-      <div class="form-group"><label>City</label><input type="text" id="prop-city"></div>
-      <div class="form-group"><label>Country</label><input type="text" id="prop-country"></div>
-      <div class="form-group"><label>Type</label><select id="prop-type"><option>Residential</option><option>Commercial</option><option>Mixed</option></select></div>
-      <button type="submit" class="btn btn-accent">Save Property</button>
-    </form>`;
+    html = '<h3>Add Property</h3><form onsubmit="saveProperty(event)">' +
+      '<div class="form-group"><label>Name</label><input type="text" id="prop-name" required></div>' +
+      '<div class="form-group"><label>Address</label><input type="text" id="prop-address"></div>' +
+      '<div class="form-group"><label>City</label><input type="text" id="prop-city"></div>' +
+      '<div class="form-group"><label>Country</label><input type="text" id="prop-country"></div>' +
+      '<div class="form-group"><label>Type</label><select id="prop-type"><option>Residential</option><option>Commercial</option><option>Mixed</option></select></div>' +
+      '<button type="submit" class="btn btn-accent">Save Property</button></form>';
   } else if (type === 'unit') {
-    html = `<h3>Add Unit</h3><form onsubmit="saveUnit(event,'${propertyId || ''}')">
-      <div class="form-group"><label>Property</label><select id="unit-prop">${AppState.properties.map(p => `<option value="${p.id}" ${p.id === propertyId ? 'selected' : ''}>${p.name}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Unit Number</label><input type="text" id="unit-number" required></div>
-      <div class="form-group"><label>Type</label><select id="unit-type"><option>Studio</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option><option>Commercial</option></select></div>
-      <div class="form-group"><label>Bedrooms</label><input type="number" id="unit-beds" value="0"></div>
-      <div class="form-group"><label>Bathrooms</label><input type="number" id="unit-baths" value="0"></div>
-      <div class="form-group"><label>Area (sqft)</label><input type="number" id="unit-area" value="0"></div>
-      <div class="form-group"><label>Rent Amount</label><input type="number" id="unit-rent" value="0"></div>
-      <div class="form-group"><label>Currency</label><input type="text" id="unit-currency" value="USD"></div>
-      <button type="submit" class="btn btn-accent">Save Unit</button>
-    </form>`;
+    html = '<h3>Add Unit</h3><form onsubmit="saveUnit(event,'' + (propertyId || '') + '')">' +
+      '<div class="form-group"><label>Property</label><select id="unit-prop">' + AppState.properties.map(p => '<option value="' + p.id + '"' + (p.id === propertyId ? ' selected' : '') + '>' + p.name + '</option>').join('') + '</select></div>' +
+      '<div class="form-group"><label>Unit Number</label><input type="text" id="unit-number" required></div>' +
+      '<div class="form-group"><label>Type</label><select id="unit-type"><option>Studio</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option><option>Commercial</option></select></div>' +
+      '<div class="form-group"><label>Bedrooms</label><input type="number" id="unit-beds" value="0"></div>' +
+      '<div class="form-group"><label>Bathrooms</label><input type="number" id="unit-baths" value="0"></div>' +
+      '<div class="form-group"><label>Area (sqft)</label><input type="number" id="unit-area" value="0"></div>' +
+      '<div class="form-group"><label>Rent Amount</label><input type="number" id="unit-rent" value="0"></div>' +
+      '<div class="form-group"><label>Currency</label><input type="text" id="unit-currency" value="USD"></div>' +
+      '<button type="submit" class="btn btn-accent">Save Unit</button></form>';
   } else if (type === 'tenant') {
-    html = `<h3>Add Tenant</h3><form onsubmit="saveTenant(event)">
-      <div class="form-group"><label>Full Name</label><input type="text" id="ten-name" required></div>
-      <div class="form-group"><label>Email</label><input type="email" id="ten-email"></div>
-      <div class="form-group"><label>Phone</label><input type="tel" id="ten-phone"></div>
-      <div class="form-group"><label>ID Number</label><input type="text" id="ten-id"></div>
-      <div class="form-group"><label>Emergency Contact</label><input type="text" id="ten-emergency"></div>
-      <button type="submit" class="btn btn-accent">Save Tenant</button>
-    </form>`;
+    html = '<h3>Add Tenant</h3><form onsubmit="saveTenant(event)">' +
+      '<div class="form-group"><label>Full Name</label><input type="text" id="ten-name" required></div>' +
+      '<div class="form-group"><label>Email</label><input type="email" id="ten-email"></div>' +
+      '<div class="form-group"><label>Phone</label><input type="tel" id="ten-phone"></div>' +
+      '<div class="form-group"><label>ID Number</label><input type="text" id="ten-id"></div>' +
+      '<div class="form-group"><label>Emergency Contact</label><input type="text" id="ten-emergency"></div>' +
+      '<button type="submit" class="btn btn-accent">Save Tenant</button></form>';
   } else if (type === 'lease') {
-    html = `<h3>Add Lease</h3><form onsubmit="saveLease(event)">
-      <div class="form-group"><label>Unit</label><select id="lease-unit">${AppState.units.filter(u => u.status === 'vacant').map(u => `<option value="${u.id}">${u.properties?.name || ''} - Unit ${u.unit_number}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Tenant</label><select id="lease-tenant">${AppState.tenants.map(t => `<option value="${t.id}">${t.full_name}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Start Date</label><input type="date" id="lease-start" required></div>
-      <div class="form-group"><label>End Date</label><input type="date" id="lease-end" required></div>
-      <div class="form-group"><label>Rent Amount</label><input type="number" id="lease-rent" required></div>
-      <div class="form-group"><label>Currency</label><input type="text" id="lease-currency" value="USD"></div>
-      <div class="form-group"><label>Deposit</label><input type="number" id="lease-deposit" value="0"></div>
-      <div class="form-group"><label>Payment Day</label><input type="number" id="lease-day" value="1" min="1" max="31"></div>
-      <button type="submit" class="btn btn-accent">Save Lease</button>
-    </form>`;
+    html = '<h3>Add Lease</h3><form onsubmit="saveLease(event)">' +
+      '<div class="form-group"><label>Unit</label><select id="lease-unit">' + AppState.units.filter(u => u.status === 'vacant').map(u => '<option value="' + u.id + '">' + (u.properties?.name || '') + ' - Unit ' + u.unit_number + '</option>').join('') + '</select></div>' +
+      '<div class="form-group"><label>Tenant</label><select id="lease-tenant">' + AppState.tenants.map(t => '<option value="' + t.id + '">' + t.full_name + '</option>').join('') + '</select></div>' +
+      '<div class="form-group"><label>Start Date</label><input type="date" id="lease-start" required></div>' +
+      '<div class="form-group"><label>End Date</label><input type="date" id="lease-end" required></div>' +
+      '<div class="form-group"><label>Rent Amount</label><input type="number" id="lease-rent" required></div>' +
+      '<div class="form-group"><label>Currency</label><input type="text" id="lease-currency" value="USD"></div>' +
+      '<div class="form-group"><label>Deposit</label><input type="number" id="lease-deposit" value="0"></div>' +
+      '<div class="form-group"><label>Payment Day</label><input type="number" id="lease-day" value="1" min="1" max="31"></div>' +
+      '<button type="submit" class="btn btn-accent">Save Lease</button></form>';
     if (unitId) setTimeout(() => { const s = $('lease-unit'); if(s) s.value = unitId; }, 0);
     if (tenantId) setTimeout(() => { const s = $('lease-tenant'); if(s) s.value = tenantId; }, 0);
   } else if (type === 'payment') {
-    html = `<h3>Record Payment</h3><form onsubmit="savePayment(event)">
-      <div class="form-group"><label>Lease</label><select id="pay-lease">${AppState.leases.filter(l => l.status === 'active').map(l => `<option value="${l.id}">${l.tenants?.full_name || ''} - ${l.units?.properties?.name || ''} ${l.units?.unit_number || ''}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Amount</label><input type="number" id="pay-amount" required></div>
-      <div class="form-group"><label>Payment Date</label><input type="date" id="pay-date" required></div>
-      <div class="form-group"><label>Method</label><select id="pay-method"><option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option><option value="credit_card">Credit Card</option><option value="check">Check</option><option value="mobile_money">Mobile Money</option></select></div>
-      <div class="form-group"><label>Notes</label><input type="text" id="pay-notes"></div>
-      <button type="submit" class="btn btn-accent">Record Payment</button>
-    </form>`;
+    html = '<h3>Record Payment</h3><form onsubmit="savePayment(event)">' +
+      '<div class="form-group"><label>Lease</label><select id="pay-lease">' + AppState.leases.filter(l => l.status === 'active').map(l => '<option value="' + l.id + '">' + (l.tenants?.full_name || '') + ' - ' + (l.units?.properties?.name || '') + ' ' + (l.units?.unit_number || '') + '</option>').join('') + '</select></div>' +
+      '<div class="form-group"><label>Amount</label><input type="number" id="pay-amount" required></div>' +
+      '<div class="form-group"><label>Payment Date</label><input type="date" id="pay-date" required></div>' +
+      '<div class="form-group"><label>Method</label><select id="pay-method"><option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option><option value="credit_card">Credit Card</option><option value="check">Check</option><option value="mobile_money">Mobile Money</option></select></div>' +
+      '<div class="form-group"><label>Notes</label><input type="text" id="pay-notes"></div>' +
+      '<button type="submit" class="btn btn-accent">Record Payment</button></form>';
   }
   $('modal-body').innerHTML = html;
   $('modal-overlay').classList.add('active');
@@ -580,96 +576,106 @@ function closeModal(e) {
 
 async function saveProperty(e) {
   e.preventDefault();
-  const { data, error } = await supabaseClient.from('properties').insert({
-    landlord_id: AppState.user.id,
-    name: $('prop-name').value,
-    address: $('prop-address').value,
-    city: $('prop-city').value,
-    country: $('prop-country').value,
-    type: $('prop-type').value
-  }).select().single();
-  if (error) { showToast(error.message, 'error'); return; }
-  AppState.properties.push(data);
-  closeModal(); renderProperties(); showToast('Property added!');
+  try {
+    const { data, error } = await supabaseClient.from('properties').insert({
+      landlord_id: AppState.user.id,
+      name: $('prop-name').value,
+      address: $('prop-address').value,
+      city: $('prop-city').value,
+      country: $('prop-country').value,
+      type: $('prop-type').value
+    }).select().single();
+    if (error) { showToast(error.message, 'error'); return; }
+    AppState.properties.push(data);
+    closeModal(); renderProperties(); showToast('Property added!');
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
 async function saveUnit(e, propId) {
   e.preventDefault();
-  const pid = propId || $('unit-prop').value;
-  const { data, error } = await supabaseClient.from('units').insert({
-    property_id: pid,
-    unit_number: $('unit-number').value,
-    type: $('unit-type').value,
-    bedrooms: parseInt($('unit-beds').value) || 0,
-    bathrooms: parseInt($('unit-baths').value) || 0,
-    area: parseInt($('unit-area').value) || 0,
-    rent_amount: parseFloat($('unit-rent').value) || 0,
-    currency: $('unit-currency').value,
-    status: 'vacant'
-  }).select().single();
-  if (error) { showToast(error.message, 'error'); return; }
-  data.properties = AppState.properties.find(p => p.id === pid);
-  AppState.units.push(data);
-  closeModal(); renderUnits(); showToast('Unit added!');
+  try {
+    const pid = propId || $('unit-prop').value;
+    const { data, error } = await supabaseClient.from('units').insert({
+      property_id: pid,
+      unit_number: $('unit-number').value,
+      type: $('unit-type').value,
+      bedrooms: parseInt($('unit-beds').value) || 0,
+      bathrooms: parseInt($('unit-baths').value) || 0,
+      area: parseInt($('unit-area').value) || 0,
+      rent_amount: parseFloat($('unit-rent').value) || 0,
+      currency: $('unit-currency').value,
+      status: 'vacant'
+    }).select().single();
+    if (error) { showToast(error.message, 'error'); return; }
+    data.properties = AppState.properties.find(p => p.id === pid);
+    AppState.units.push(data);
+    closeModal(); renderUnits(); showToast('Unit added!');
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
 async function saveTenant(e) {
   e.preventDefault();
-  const { data, error } = await supabaseClient.from('tenants').insert({
-    landlord_id: AppState.user.id,
-    full_name: $('ten-name').value,
-    email: $('ten-email').value,
-    phone: $('ten-phone').value,
-    id_number: $('ten-id').value,
-    emergency_contact: $('ten-emergency').value
-  }).select().single();
-  if (error) { showToast(error.message, 'error'); return; }
-  AppState.tenants.push(data);
-  closeModal(); renderTenants(); showToast('Tenant added!');
+  try {
+    const { data, error } = await supabaseClient.from('tenants').insert({
+      landlord_id: AppState.user.id,
+      full_name: $('ten-name').value,
+      email: $('ten-email').value,
+      phone: $('ten-phone').value,
+      id_number: $('ten-id').value,
+      emergency_contact: $('ten-emergency').value
+    }).select().single();
+    if (error) { showToast(error.message, 'error'); return; }
+    AppState.tenants.push(data);
+    closeModal(); renderTenants(); showToast('Tenant added!');
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
 async function saveLease(e) {
   e.preventDefault();
-  const { data, error } = await supabaseClient.from('leases').insert({
-    unit_id: $('lease-unit').value,
-    tenant_id: $('lease-tenant').value,
-    start_date: $('lease-start').value,
-    end_date: $('lease-end').value,
-    rent_amount: parseFloat($('lease-rent').value) || 0,
-    currency: $('lease-currency').value,
-    deposit_amount: parseFloat($('lease-deposit').value) || 0,
-    payment_day: parseInt($('lease-day').value) || 1,
-    status: 'active'
-  }).select().single();
-  if (error) { showToast(error.message, 'error'); return; }
-  await supabaseClient.from('units').update({ status: 'occupied' }).eq('id', $('lease-unit').value);
-  const unit = AppState.units.find(u => u.id === $('lease-unit').value);
-  if (unit) unit.status = 'occupied';
-  data.tenants = AppState.tenants.find(t => t.id === $('lease-tenant').value);
-  data.units = unit;
-  AppState.leases.push(data);
-  closeModal(); renderLeases(); renderUnits(); showToast('Lease created!');
+  try {
+    const { data, error } = await supabaseClient.from('leases').insert({
+      unit_id: $('lease-unit').value,
+      tenant_id: $('lease-tenant').value,
+      start_date: $('lease-start').value,
+      end_date: $('lease-end').value,
+      rent_amount: parseFloat($('lease-rent').value) || 0,
+      currency: $('lease-currency').value,
+      deposit_amount: parseFloat($('lease-deposit').value) || 0,
+      payment_day: parseInt($('lease-day').value) || 1,
+      status: 'active'
+    }).select().single();
+    if (error) { showToast(error.message, 'error'); return; }
+    await supabaseClient.from('units').update({ status: 'occupied' }).eq('id', $('lease-unit').value);
+    const unit = AppState.units.find(u => u.id === $('lease-unit').value);
+    if (unit) unit.status = 'occupied';
+    data.tenants = AppState.tenants.find(t => t.id === $('lease-tenant').value);
+    data.units = unit;
+    AppState.leases.push(data);
+    closeModal(); renderLeases(); renderUnits(); showToast('Lease created!');
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
 async function savePayment(e) {
   e.preventDefault();
-  const leaseId = $('pay-lease').value;
-  const lease = AppState.leases.find(l => l.id === leaseId);
-  const receiptNum = 'RCP-' + Date.now();
-  const { data, error } = await supabaseClient.from('payments').insert({
-    lease_id: leaseId,
-    amount: parseFloat($('pay-amount').value) || 0,
-    payment_date: $('pay-date').value,
-    payment_method: $('pay-method').value,
-    notes: $('pay-notes').value,
-    receipt_number: receiptNum,
-    currency: lease?.currency || 'USD',
-    status: 'completed'
-  }).select().single();
-  if (error) { showToast(error.message, 'error'); return; }
-  data.leases = lease;
-  AppState.payments.unshift(data);
-  closeModal(); renderPayments(); loadDashboard(); showToast('Payment recorded!');
+  try {
+    const leaseId = $('pay-lease').value;
+    const lease = AppState.leases.find(l => l.id === leaseId);
+    const receiptNum = 'RCP-' + Date.now();
+    const { data, error } = await supabaseClient.from('payments').insert({
+      lease_id: leaseId,
+      amount: parseFloat($('pay-amount').value) || 0,
+      payment_date: $('pay-date').value,
+      payment_method: $('pay-method').value,
+      notes: $('pay-notes').value,
+      receipt_number: receiptNum,
+      currency: lease?.currency || 'USD',
+      status: 'completed'
+    }).select().single();
+    if (error) { showToast(error.message, 'error'); return; }
+    data.leases = lease;
+    AppState.payments.unshift(data);
+    closeModal(); renderPayments(); loadDashboard(); showToast('Payment recorded!');
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
 }
 
 // ==================== UTILITIES ====================
