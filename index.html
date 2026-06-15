@@ -1,1028 +1,712 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RentRadar - Property Management</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            navy: '#0f172a',
-            emerald: '#10b981',
-            'emerald-dark': '#059669',
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    .glass {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .page { display: none; }
-    .page.active { display: block; }
-    .page-section { display: none; }
-    .page-section.active { display: block; }
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    input, select, textarea {
-      background-color: #1e293b;
-      border: 1px solid #334155;
-      color: #f1f5f9;
-    }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #10b981;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentRadar - Property Management</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#0f172a;--accent:#10b981;--danger:#ef4444;--warning:#f59e0b;--bg:#f1f5f9;--card:#ffffff;--text:#1e293b;--muted:#64748b;--border:#e2e8f0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:500;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:hover{opacity:.9;transform:translateY(-1px)}
+.card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.1);margin-bottom:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:6px;font-size:13px;font-weight:500;color:var(--muted)}
+.form-group input,.form-group select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none}
+.form-group input:focus{border-color:var(--accent)}
+.page{display:none;min-height:100vh}
+.page.active{display:block}
+/* Login Page */
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--primary) 0%,#1e3a5f 100%)}
+.login-box{background:#fff;padding:40px;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-box h1{text-align:center;margin-bottom:8px;color:var(--primary)}
+.login-box p.subtitle{text-align:center;color:var(--muted);margin-bottom:24px;font-size:14px}
+.login-toggle{text-align:center;margin-top:16px;font-size:14px;color:var(--muted)}
+.login-toggle a{color:var(--accent);cursor:pointer;text-decoration:underline}
+/* App Layout */
+#app-layout{display:none;min-height:100vh}
+#app-layout.active{display:flex;flex-direction:column}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.topbar h2{font-size:18px;color:var(--primary)}
+.topbar-user{display:flex;align-items:center;gap:12px}
+.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);min-height:calc(100vh - 57px);padding:16px 0;position:fixed;left:0;top:57px}
+.sidebar-item{padding:12px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--muted);border-left:3px solid transparent}
+.sidebar-item:hover{background:var(--bg);color:var(--text)}
+.sidebar-item.active{border-left-color:var(--accent);background:var(--bg);color:var(--text);font-weight:500}
+.main-content{margin-left:240px;padding:24px;flex:1}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-card{padding:20px;text-align:center}
+.stat-card h3{font-size:28px;color:var(--primary);margin-bottom:4px}
+.stat-card p{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:12px;text-align:left;border-bottom:1px solid var(--border);font-size:14px}
+.table th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.table tr:hover{background:var(--bg)}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.badge-green{background:#d1fae5;color:#065f46}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-yellow{background:#fef3c7;color:#92400e}
+.badge-blue{background:#dbeafe;color:#1e40af}
+.badge-gray{background:#f1f5f9;color:#475569}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;color:#fff;font-size:14px;z-index:1000;animation:slideIn .3s ease;max-width:360px}
+.toast-success{background:var(--accent)}
+.toast-error{background:var(--danger)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px;position:relative}
+.modal h3{margin-bottom:20px;color:var(--primary)}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state h3{margin-bottom:8px;color:var(--text)}
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.tab{padding:10px 16px;cursor:pointer;font-size:14px;color:var(--muted);border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.search-box{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:16px;font-size:14px}
+.property-card{border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .2s}
+.property-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.property-card img{width:100%;height:160px;object-fit:cover;background:var(--bg)}
+.property-card-body{padding:16px}
+.property-card h4{margin-bottom:4px;font-size:16px}
+.property-card p{color:var(--muted);font-size:13px}
+.unit-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--border)}
+.unit-row:last-child{border-bottom:none}
+.receipt-frame{width:100%;height:600px;border:1px solid var(--border);border-radius:8px}
+@media (max-width:768px){.sidebar{display:none}.main-content{margin-left:0}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+</style>
 <base target="_blank">
 </head>
-<body class="bg-navy text-gray-100 min-h-screen font-sans antialiased">
+<body>
 
-  <!-- Toast Container -->
-  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
-
-  <!-- ==================== LOGIN PAGE ==================== -->
-  <div id="page-login" class="page active min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-navy via-gray-900 to-navy">
-    <div class="w-full max-w-md">
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/20 mb-4">
-          <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-        </div>
-        <h1 class="text-3xl font-bold text-white tracking-tight">RentRadar</h1>
-        <p class="text-gray-400 mt-2">Property Management for African Landlords</p>
+<!-- LOGIN PAGE -->
+<div id="login-page" class="page active">
+  <div class="login-box">
+    <h1>RentRadar</h1>
+    <p class="subtitle">Property Management Made Simple</p>
+    <form id="login-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" required placeholder="you@example.com">
       </div>
-
-      <div class="glass rounded-2xl p-8">
-        <form id="login-form" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
-            <input type="email" id="login-email" required class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-emerald-500/20 transition-colors" placeholder="you@example.com">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
-            <input type="password" id="login-password" required minlength="6" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-emerald-500/20 transition-colors" placeholder="••••••••">
-          </div>
-          <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-emerald-500/20">Sign In</button>
-          <p class="text-center text-sm text-gray-400">
-            No account? <button type="button" onclick="toggleAuthMode()" class="text-emerald-400 hover:text-emerald-300 font-medium">Create one</button>
-          </p>
-        </form>
-
-        <form id="register-form" class="space-y-4 hidden">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
-            <input type="text" id="reg-name" required class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-emerald-500/20 transition-colors" placeholder="John Doe">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
-            <input type="email" id="reg-email" required class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-emerald-500/20 transition-colors" placeholder="you@example.com">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Phone Number</label>
-            <input type="tel" id="reg-phone" required class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-emerald-500/20 transition-colors" placeholder="+263 77 123 4567">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Business Name (optional)</label>
-            <input type="text" id="reg-business" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-emerald-500/20 transition-colors" placeholder="Doe Properties">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
-            <input type="password" id="reg-password" required minlength="6" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-emerald-500/20 transition-colors" placeholder="••••••••">
-          </div>
-          <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-emerald-500/20">Create Account</button>
-          <p class="text-center text-sm text-gray-400">
-            Already have an account? <button type="button" onclick="toggleAuthMode()" class="text-emerald-400 hover:text-emerald-300 font-medium">Sign in</button>
-          </p>
-        </form>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" required placeholder="Min 6 characters">
       </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">Sign In</button>
+    </form>
+    <form id="register-form" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" required placeholder="John Doe">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" required placeholder="Min 6 characters">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="reg-phone" placeholder="+1234567890">
+      </div>
+      <button type="submit" class="btn btn-accent" style="width:100%;justify-content:center;padding:12px">Create Account</button>
+    </form>
+    <div class="login-toggle">
+      <span id="toggle-text">No account? <a onclick="toggleAuthMode()">Create one</a></span>
     </div>
   </div>
+</div>
 
-  <!-- ==================== APP LAYOUT ==================== -->
-  <div id="app-layout" class="page min-h-screen flex">
-    <button id="mobile-menu-btn" onclick="toggleSidebar()" class="md:hidden fixed top-4 left-4 z-50 p-2 bg-gray-800/90 backdrop-blur rounded-lg text-white border border-gray-700 shadow-lg">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
-
-    <aside id="sidebar" class="fixed md:sticky inset-y-0 left-0 w-64 bg-gray-900 border-r border-gray-800 transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-40 flex flex-col">
-      <div class="p-6 border-b border-gray-800 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          </div>
-          <span class="font-bold text-white">RentRadar</span>
-        </div>
-        <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-
-      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-        <a href="#" onclick="showPage('dashboard'); return false;" data-page="dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-          <span>Dashboard</span>
-        </a>
-        <a href="#" onclick="showPage('properties'); return false;" data-page="properties" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-          <span>Properties</span>
-        </a>
-        <a href="#" onclick="showPage('tenants'); return false;" data-page="tenants" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-          <span>Tenants</span>
-        </a>
-        <a href="#" onclick="showPage('leases'); return false;" data-page="leases" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          <span>Leases</span>
-        </a>
-        <a href="#" onclick="showPage('payments'); return false;" data-page="payments" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span>Payments</span>
-        </a>
-        <a href="#" onclick="showPage('maintenance'); return false;" data-page="maintenance" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-          <span>Maintenance</span>
-        </a>
-        <a href="#" onclick="showPage('reports'); return false;" data-page="reports" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-          <span>Reports</span>
-        </a>
-        <a href="#" onclick="showPage('settings'); return false;" data-page="settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          <span>Settings</span>
-        </a>
-      </nav>
-
-      <div class="p-4 border-t border-gray-800">
-        <button onclick="handleLogout()" class="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-red-400 hover:bg-red-500/10 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
-
-    <main class="flex-1 min-w-0 overflow-y-auto">
-      <header class="sticky top-0 bg-navy/95 backdrop-blur border-b border-gray-800 px-4 md:px-6 py-4 flex justify-between items-center z-30">
-        <h2 id="page-title" class="text-xl font-bold text-white ml-12 md:ml-0">Dashboard</h2>
-        <div class="flex items-center gap-4">
-          <span id="user-name" class="text-sm text-gray-400 hidden sm:block">Landlord</span>
-          <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-          </div>
-        </div>
-      </header>
-
-      <div class="p-4 md:p-6 space-y-6">
-
-        <!-- ==================== DASHBOARD ==================== -->
-        <div id="page-dashboard" class="page-section active space-y-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="glass rounded-xl p-5">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm text-gray-400">Total Properties</span>
-                <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                </div>
-              </div>
-              <p id="dash-total-properties" class="text-2xl font-bold text-white">0</p>
-            </div>
-            <div class="glass rounded-xl p-5">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm text-gray-400">Occupancy Rate</span>
-                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                  <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                </div>
-              </div>
-              <p id="dash-occupancy-rate" class="text-2xl font-bold text-white">0%</p>
-              <p class="text-xs text-gray-500 mt-1"><span id="dash-occupied" class="text-emerald-400">0</span> occupied / <span id="dash-vacant" class="text-red-400">0</span> vacant</p>
-            </div>
-            <div class="glass rounded-xl p-5">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm text-gray-400">Rent Collected (This Month)</span>
-                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                  <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-              </div>
-              <p id="dash-collected" class="text-2xl font-bold text-emerald-400">$0.00</p>
-              <p class="text-xs text-gray-500 mt-1">Expected: <span id="dash-expected" class="text-gray-300">$0.00</span></p>
-            </div>
-            <div class="glass rounded-xl p-5">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm text-gray-400">Overdue Payments</span>
-                <div class="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
-                  <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-              </div>
-              <p id="dash-overdue" class="text-2xl font-bold text-red-400">0</p>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 glass rounded-xl p-6">
-              <h3 class="text-lg font-semibold text-white mb-4">Upcoming Lease Expiries (Next 60 Days)</h3>
-              <div id="dash-expiry-list" class="space-y-3">
-                <p class="text-gray-500 text-center py-8">Loading...</p>
-              </div>
-            </div>
-            <div class="glass rounded-xl p-6">
-              <h3 class="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-              <div class="space-y-3">
-                <button onclick="showPage('payments'); setTimeout(openPaymentModal, 100)" class="w-full flex items-center gap-3 px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg transition-colors text-left">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                  <span>Log Payment</span>
-                </button>
-                <button onclick="showPage('maintenance'); setTimeout(openMaintenanceModal, 100)" class="w-full flex items-center gap-3 px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors text-left">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
-                  <span>New Maintenance Request</span>
-                </button>
-                <button onclick="showPage('leases'); setTimeout(openLeaseModal, 100)" class="w-full flex items-center gap-3 px-4 py-3 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg transition-colors text-left">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                  <span>Create Lease</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ==================== PROPERTIES ==================== -->
-        <div id="page-properties" class="page-section hidden space-y-6">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Your Properties</h3>
-            <button onclick="openPropertyModal()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-              Add Property
-            </button>
-          </div>
-          <div id="properties-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <p class="text-gray-500 col-span-full text-center py-12">Loading properties...</p>
-          </div>
-        </div>
-
-        <!-- ==================== UNITS ==================== -->
-        <div id="page-units" class="page-section hidden space-y-6">
-          <div class="flex items-center gap-4">
-            <button onclick="showPage('properties')" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">
-              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </button>
-            <div>
-              <h3 id="units-property-name" class="text-lg font-semibold text-white">Property Name</h3>
-              <p id="units-property-address" class="text-sm text-gray-400">Address</p>
-            </div>
-          </div>
-          <div class="flex justify-between items-center">
-            <span id="units-count" class="text-sm text-gray-400">0 units</span>
-            <button onclick="openUnitModal()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-              Add Unit
-            </button>
-          </div>
-          <div id="units-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <p class="text-gray-500 col-span-full text-center py-12">Loading units...</p>
-          </div>
-        </div>
-
-        <!-- ==================== TENANTS ==================== -->
-        <div id="page-tenants" class="page-section hidden space-y-6">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Tenant Directory</h3>
-            <button onclick="openTenantModal()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-              Add Tenant
-            </button>
-          </div>
-          <div class="glass rounded-xl overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left">
-                <thead class="bg-gray-800/50 text-gray-400 text-sm uppercase">
-                  <tr>
-                    <th class="px-4 py-3">Name</th>
-                    <th class="px-4 py-3">Contact</th>
-                    <th class="px-4 py-3">Unit</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="tenants-list" class="divide-y divide-gray-800">
-                  <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Loading tenants...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ==================== LEASES ==================== -->
-        <div id="page-leases" class="page-section hidden space-y-6">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Leases</h3>
-            <button onclick="openLeaseModal()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-              Create Lease
-            </button>
-          </div>
-          <div class="glass rounded-xl overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left">
-                <thead class="bg-gray-800/50 text-gray-400 text-sm uppercase">
-                  <tr>
-                    <th class="px-4 py-3">Tenant</th>
-                    <th class="px-4 py-3">Property / Unit</th>
-                    <th class="px-4 py-3">Rent</th>
-                    <th class="px-4 py-3">Period</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="leases-list" class="divide-y divide-gray-800">
-                  <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Loading leases...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ==================== PAYMENTS ==================== -->
-        <div id="page-payments" class="page-section hidden space-y-6">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Payments</h3>
-            <button onclick="openPaymentModal()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-              Log Payment
-            </button>
-          </div>
-          <div class="glass rounded-xl overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left">
-                <thead class="bg-gray-800/50 text-gray-400 text-sm uppercase">
-                  <tr>
-                    <th class="px-4 py-3">Receipt #</th>
-                    <th class="px-4 py-3">Tenant</th>
-                    <th class="px-4 py-3">Amount</th>
-                    <th class="px-4 py-3">Date</th>
-                    <th class="px-4 py-3">Method</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="payments-list" class="divide-y divide-gray-800">
-                  <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Loading payments...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ==================== MAINTENANCE ==================== -->
-        <div id="page-maintenance" class="page-section hidden space-y-6">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-white">Maintenance Requests</h3>
-            <button onclick="openMaintenanceModal()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-              New Request
-            </button>
-          </div>
-          <div id="maintenance-list" class="space-y-4">
-            <p class="text-gray-500 text-center py-12">Loading maintenance requests...</p>
-          </div>
-        </div>
-
-        <!-- ==================== REPORTS ==================== -->
-        <div id="page-reports" class="page-section hidden space-y-6">
-          <h3 class="text-lg font-semibold text-white">Financial Reports</h3>
-          <div class="glass rounded-xl p-6">
-            <h4 class="text-sm font-medium text-gray-300 mb-4">Monthly Income (Last 6 Months)</h4>
-            <div id="income-chart" class="flex items-end gap-4 h-64 pb-6 border-b border-gray-800">
-              <p class="text-gray-500 w-full text-center">Loading chart...</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="glass rounded-xl p-6">
-              <h4 class="text-sm font-medium text-gray-300 mb-4">Arrears</h4>
-              <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                  <thead class="text-gray-400 uppercase">
-                    <tr><th class="pb-2">Tenant</th><th class="pb-2">Unit</th><th class="pb-2 text-right">Amount Owed</th><th class="pb-2 text-right">Days</th></tr>
-                  </thead>
-                  <tbody id="arrears-list" class="divide-y divide-gray-800">
-                    <tr><td colspan="4" class="py-4 text-center text-gray-500">No arrears found</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="glass rounded-xl p-6">
-              <h4 class="text-sm font-medium text-gray-300 mb-4">Lease Expiries (Next 90 Days)</h4>
-              <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                  <thead class="text-gray-400 uppercase">
-                    <tr><th class="pb-2">Tenant</th><th class="pb-2">Unit</th><th class="pb-2 text-right">Expiry Date</th></tr>
-                  </thead>
-                  <tbody id="reports-expiry-list" class="divide-y divide-gray-800">
-                    <tr><td colspan="3" class="py-4 text-center text-gray-500">No upcoming expiries</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ==================== SETTINGS ==================== -->
-        <div id="page-settings" class="page-section hidden space-y-6">
-          <h3 class="text-lg font-semibold text-white">Settings</h3>
-          <div class="glass rounded-xl p-6 max-w-2xl">
-            <form id="settings-form" class="space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
-                  <input type="text" id="set-name" class="w-full px-4 py-2 rounded-lg">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">Phone</label>
-                  <input type="tel" id="set-phone" class="w-full px-4 py-2 rounded-lg">
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Business Name</label>
-                <input type="text" id="set-business" class="w-full px-4 py-2 rounded-lg">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Country</label>
-                <select id="set-country" class="w-full px-4 py-2 rounded-lg">
-                  <option value="Zimbabwe">Zimbabwe</option>
-                  <option value="South Africa">South Africa</option>
-                  <option value="Kenya">Kenya</option>
-                  <option value="Zambia">Zambia</option>
-                  <option value="Nigeria">Nigeria</option>
-                </select>
-              </div>
-              <div class="border-t border-gray-800 pt-4 mt-4">
-                <h4 class="text-sm font-semibold text-white mb-3">Telegram Notifications</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Telegram Chat ID</label>
-                    <input type="text" id="set-telegram-chat" class="w-full px-4 py-2 rounded-lg" placeholder="123456789">
-                    <p class="text-xs text-gray-500 mt-1">Get this from @userinfobot on Telegram</p>
-                  </div>
-                  <div class="flex items-end">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" id="set-telegram-enabled" class="w-4 h-4 rounded accent-emerald-500">
-                      <span class="text-sm text-gray-300">Enable Telegram reminders</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div class="pt-4">
-                <button type="submit" class="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">Save Changes</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <!-- ==================== MODAL ==================== -->
-  <div id="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div id="modal-content" class="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-700 shadow-2xl">
+<!-- APP LAYOUT -->
+<div id="app-layout">
+  <div class="topbar">
+    <h2>RentRadar</h2>
+    <div class="topbar-user">
+      <span id="user-name">User</span>
+      <button class="btn btn-danger" onclick="handleLogout()">Logout</button>
     </div>
   </div>
+  <div style="display:flex">
+    <div class="sidebar">
+      <div class="sidebar-item active" onclick="showPage('dashboard')" data-page="dashboard">Dashboard</div>
+      <div class="sidebar-item" onclick="showPage('properties')" data-page="properties">Properties</div>
+      <div class="sidebar-item" onclick="showPage('units')" data-page="units">Units</div>
+      <div class="sidebar-item" onclick="showPage('tenants')" data-page="tenants">Tenants</div>
+      <div class="sidebar-item" onclick="showPage('leases')" data-page="leases">Leases</div>
+      <div class="sidebar-item" onclick="showPage('payments')" data-page="payments">Payments</div>
+      <div class="sidebar-item" onclick="showPage('notifications')" data-page="notifications">Notifications</div>
+      <div class="sidebar-item" onclick="showPage('settings')" data-page="settings">Settings</div>
+    </div>
+    <div class="main-content">
 
-  <script>
-    // ==================== CONFIG ====================
-    const SUPABASE_URL = 'https://jolpglrgumfvddalftfm.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvbHBnbHJndW1mdmRkYWxmdGZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MzIzNjksImV4cCI6MjA5NzEwODM2OX0.2Rh0Bv3I2GSVRwWv6JKUFESRZKytAUXC12wRnNqgotM';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // ==================== STATE ====================
-    const AppState = {
-      user: null,
-      profile: null,
-      properties: [],
-      units: [],
-      tenants: [],
-      leases: [],
-      payments: [],
-      maintenance: [],
-      currentProperty: null,
-      isSidebarOpen: false
-    };
-
-    // ==================== UTILITIES ====================
-    function $(id) { return document.getElementById(id); }
-    function esc(str) {
-      if (!str) return '';
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-    function formatCurrency(amount, currency) {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount || 0);
-    }
-    function formatDate(dateStr) {
-      if (!dateStr) return '-';
-      return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    function getStatusBadge(status) {
-      const map = {
-        active: 'bg-emerald-500/20 text-emerald-400',
-        paid: 'bg-emerald-500/20 text-emerald-400',
-        occupied: 'bg-emerald-500/20 text-emerald-400',
-        resolved: 'bg-emerald-500/20 text-emerald-400',
-        vacant: 'bg-red-500/20 text-red-400',
-        expired: 'bg-red-500/20 text-red-400',
-        overdue: 'bg-red-500/20 text-red-400',
-        terminated: 'bg-red-500/20 text-red-400',
-        pending: 'bg-yellow-500/20 text-yellow-400',
-        'in_progress': 'bg-yellow-500/20 text-yellow-400',
-        open: 'bg-blue-500/20 text-blue-400',
-        closed: 'bg-gray-500/20 text-gray-400',
-        high: 'bg-red-500/20 text-red-400',
-        urgent: 'bg-red-500/20 text-red-400',
-        medium: 'bg-yellow-500/20 text-yellow-400',
-        low: 'bg-blue-500/20 text-blue-400'
-      };
-      return map[status] || 'bg-gray-500/20 text-gray-400';
-    }
-    function showToast(message, type) {
-      type = type || 'success';
-      const container = $('toast-container');
-      const toast = document.createElement('div');
-      const colors = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-      toast.className = colors + ' text-white px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full pointer-events-auto';
-      toast.innerHTML = '<p class="font-medium">' + esc(message) + '</p>';
-      container.appendChild(toast);
-      requestAnimationFrame(function() { toast.classList.remove('translate-x-full'); });
-      setTimeout(function() {
-        toast.classList.add('translate-x-full', 'opacity-0');
-        setTimeout(function() { toast.remove(); }, 300);
-      }, 4000);
-    }
-
-    // ==================== ROUTER ====================
-    function showPage(pageId) {
-      document.querySelectorAll('.page-section').forEach(function(el) { el.classList.remove('active'); });
-      const target = $('page-' + pageId);
-      if (target) target.classList.add('active');
-
-      document.querySelectorAll('.nav-link').forEach(function(link) {
-        const isActive = link.dataset.page === pageId;
-        link.classList.toggle('bg-emerald-500/20', isActive);
-        link.classList.toggle('text-emerald-400', isActive);
-        link.classList.toggle('text-gray-400', !isActive);
-      });
-
-      const titles = {
-        dashboard: 'Dashboard', properties: 'Properties', units: 'Units',
-        tenants: 'Tenants', leases: 'Leases', payments: 'Payments',
-        maintenance: 'Maintenance', reports: 'Reports', settings: 'Settings'
-      };
-      $('page-title').textContent = titles[pageId] || 'RentRadar';
-
-      AppState.isSidebarOpen = false;
-      updateSidebar();
-
-      if (pageId === 'dashboard') loadDashboard();
-      else if (pageId === 'properties') loadProperties();
-      else if (pageId === 'tenants') loadTenants();
-      else if (pageId === 'leases') loadLeases();
-      else if (pageId === 'payments') loadPayments();
-      else if (pageId === 'maintenance') loadMaintenance();
-      else if (pageId === 'reports') loadReports();
-      else if (pageId === 'settings') loadSettings();
-
-      window.scrollTo(0, 0);
-    }
-    function toggleSidebar() {
-      AppState.isSidebarOpen = !AppState.isSidebarOpen;
-      updateSidebar();
-    }
-    function updateSidebar() {
-      const sidebar = $('sidebar');
-      if (AppState.isSidebarOpen) sidebar.classList.remove('-translate-x-full');
-      else sidebar.classList.add('-translate-x-full');
-    }
-    function toggleAuthMode() {
-      $('login-form').classList.toggle('hidden');
-      $('register-form').classList.toggle('hidden');
-    }
-
-    // ==================== AUTH ====================
-    async function initAuth() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session) {
-        AppState.user = session.user;
-        await loadProfile();
-        $('page-login').classList.remove('active');
-        $('app-layout').classList.add('active');
-        showPage('dashboard');
-      }
-      supabaseClient.auth.onAuthStateChange(function(event, session) {
-        if (event === 'SIGNED_IN' && session) {
-          AppState.user = session.user;
-          loadProfile().then(function() {
-            $('page-login').classList.remove('active');
-            $('app-layout').classList.add('active');
-            showPage('dashboard');
-          });
-        } else if (event === 'SIGNED_OUT') {
-          AppState.user = null;
-          AppState.profile = null;
-          $('page-login').classList.add('active');
-          $('app-layout').classList.remove('active');
-          document.querySelectorAll('.page-section').forEach(function(el) { el.classList.remove('active'); });
-        }
-      });
-    }
-    async function loadProfile() {
-      if (!AppState.user) return;
-      const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', AppState.user.id).single();
-      if (error) { console.error('Profile error:', error); return; }
-      AppState.profile = data;
-      const nameEl = $('user-name');
-      if (nameEl) nameEl.textContent = data.full_name || data.email || 'Landlord';
-    }
-    async function handleLogin(e) {
-      e.preventDefault();
-      const email = $('login-email').value;
-      const password = $('login-password').value;
-
-      console.log('Attempting login with:', email);
-
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
-
-      if (error) {
-        console.error('Login error:', error);
-        showToast(error.message, 'error');
-        return;
-      }
-
-      if (data && data.user) {
-        console.log('Login successful:', data.user);
-        AppState.user = data.user;
-        await loadProfile();
-        $('page-login').classList.remove('active');
-        $('app-layout').classList.add('active');
-        showPage('dashboard');
-        showToast('Welcome back!');
-      } else {
-        console.error('No user data returned');
-        showToast('Login failed - no user data', 'error');
-      }
-    }
-    async function handleRegister(e) {
-      e.preventDefault();
-      const email = $('reg-email').value;
-      const password = $('reg-password').value;
-      const fullName = $('reg-name').value;
-      const phone = $('reg-phone').value;
-      const businessName = $('reg-business').value;
-
-      console.log('Attempting register with:', email);
-
-      const { data, error } = await supabaseClient.auth.signUp({ email: email, password: password });
-
-      if (error) {
-        console.error('Register error:', error);
-        showToast(error.message, 'error');
-        return;
-      }
-
-      if (data && data.user) {
-        console.log('Register successful:', data.user);
-        await supabaseClient.from('profiles').update({
-          full_name: fullName, phone: phone, business_name: businessName, role: 'landlord'
-        }).eq('id', data.user.id);
-        showToast('Account created! Check your email to confirm.');
-        toggleAuthMode();
-      } else {
-        showToast('Registration failed - no user data', 'error');
-      }
-    }
-    async function handleLogout() {
-      await supabaseClient.auth.signOut();
-      showToast('Logged out successfully');
-    }
-
-    // ==================== DASHBOARD ====================
-    async function loadDashboard() {
-      if (!AppState.user) return;
-      const uid = AppState.user.id;
-
-      const { count: propCount } = await supabaseClient.from('properties').select('*', { count: 'exact', head: true }).eq('landlord_id', uid);
-
-      const { data: unitsData } = await supabaseClient.from('units').select('status, properties!inner(landlord_id)').eq('properties.landlord_id', uid);
-      const totalUnits = unitsData ? unitsData.length : 0;
-      const occupied = unitsData ? unitsData.filter(function(u) { return u.status === 'occupied'; }).length : 0;
-      const vacant = totalUnits - occupied;
-      const occupancyRate = totalUnits > 0 ? Math.round((occupied / totalUnits) * 100) : 0;
-
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      const { data: paymentsData } = await supabaseClient.from('payments').select('amount, leases!inner(units!inner(properties!inner(landlord_id)))').eq('leases.units.properties.landlord_id', uid).gte('payment_date', startOfMonth.toISOString().split('T')[0]).eq('status', 'paid');
-      const collected = paymentsData ? paymentsData.reduce(function(s, p) { return s + (parseFloat(p.amount) || 0); }, 0) : 0;
-
-      const { data: leasesData } = await supabaseClient.from('leases').select('rent_amount, units!inner(properties!inner(landlord_id))').eq('units.properties.landlord_id', uid).eq('status', 'active');
-      const expected = leasesData ? leasesData.reduce(function(s, l) { return s + (parseFloat(l.rent_amount) || 0); }, 0) : 0;
-
-      const { data: overdueData } = await supabaseClient.from('payments').select('id, leases!inner(units!inner(properties!inner(landlord_id)))').eq('leases.units.properties.landlord_id', uid).eq('status', 'overdue');
-      const overdueCount = overdueData ? overdueData.length : 0;
-
-      const sixtyDays = new Date();
-      sixtyDays.setDate(sixtyDays.getDate() + 60);
-      const today = new Date().toISOString().split('T')[0];
-      const { data: expiringLeases } = await supabaseClient.from('leases').select('*, tenants(full_name), units(unit_number, properties(name))').eq('status', 'active').lte('end_date', sixtyDays.toISOString().split('T')[0]).gte('end_date', today).order('end_date', { ascending: true }).limit(10);
-
-      $('dash-total-properties').textContent = propCount || 0;
-      $('dash-occupancy-rate').textContent = occupancyRate + '%';
-      $('dash-occupied').textContent = occupied;
-      $('dash-vacant').textContent = vacant;
-      $('dash-collected').textContent = formatCurrency(collected, 'USD');
-      $('dash-expected').textContent = formatCurrency(expected, 'USD');
-      $('dash-overdue').textContent = overdueCount;
-
-      const expiryList = $('dash-expiry-list');
-      if (expiringLeases && expiringLeases.length > 0) {
-        expiryList.innerHTML = expiringLeases.map(function(l) {
-          const daysLeft = Math.ceil((new Date(l.end_date) - new Date()) / (1000 * 60 * 60 * 24));
-          const name = l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown';
-          const propName = l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '';
-          const unitNum = l.units && l.units.unit_number ? l.units.unit_number : '';
-          const colorClass = daysLeft <= 30 ? 'text-red-400' : 'text-yellow-400';
-          return `<div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
-            <div>
-              <p class="font-medium text-white">${esc(name)}</p>
-              <p class="text-sm text-gray-400">${esc(propName)} - Unit ${esc(unitNum)}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm font-medium ${colorClass}">${daysLeft} days left</p>
-              <p class="text-xs text-gray-500">${formatDate(l.end_date)}</p>
-            </div>
-          </div>`;
-        }).join('');
-      } else {
-        expiryList.innerHTML = '<p class="text-gray-500 text-center py-4">No upcoming expiries in the next 60 days</p>';
-      }
-    }
-
-    // ==================== PROPERTIES ====================
-    async function loadProperties() {
-      if (!AppState.user) return;
-      const { data, error } = await supabaseClient.from('properties').select('*').eq('landlord_id', AppState.user.id).order('created_at', { ascending: false });
-      if (error) { showToast('Error loading properties', 'error'); return; }
-      AppState.properties = data || [];
-      renderProperties();
-    }
-    function renderProperties() {
-      const container = $('properties-list');
-      if (!AppState.properties.length) {
-        container.innerHTML = '<p class="text-gray-500 col-span-full text-center py-12">No properties yet. Add your first property to get started.</p>';
-        return;
-      }
-      container.innerHTML = AppState.properties.map(function(p) {
-        const typeClass = p.property_type === 'residential' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400';
-        return `<div class="glass rounded-xl p-5 hover:bg-white/10 transition-colors cursor-pointer" onclick="viewProperty('${p.id}')">
-          <div class="flex items-start justify-between mb-3">
-            <h4 class="font-semibold text-white text-lg">${esc(p.name)}</h4>
-            <span class="px-2 py-1 rounded-full text-xs font-medium ${typeClass}">${esc(p.property_type)}</span>
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="tab-content active">
+        <h2 style="margin-bottom:20px">Dashboard</h2>
+        <div class="grid-4">
+          <div class="card stat-card"><h3 id="dash-properties">0</h3><p>Properties</p></div>
+          <div class="card stat-card"><h3 id="dash-units">0</h3><p>Total Units</p></div>
+          <div class="card stat-card"><h3 id="dash-occupied">0</h3><p>Occupied</p></div>
+          <div class="card stat-card"><h3 id="dash-vacant">0</h3><p>Vacant</p></div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div class="card">
+            <h3 style="margin-bottom:16px;font-size:16px">Recent Payments</h3>
+            <div id="dash-payments"><div class="empty-state"><p>No payments yet</p></div></div>
           </div>
-          <p class="text-gray-400 text-sm mb-1">${esc(p.address)}</p>
-          <p class="text-gray-500 text-sm">${esc(p.city)}, ${esc(p.country)}</p>
-          <div class="mt-4 flex items-center justify-between">
-            <span class="text-sm text-gray-400">Click to view units</span>
-            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          <div class="card">
+            <h3 style="margin-bottom:16px;font-size:16px">Upcoming Lease Expirations</h3>
+            <div id="dash-expiry"><div class="empty-state"><p>No upcoming expirations</p></div></div>
           </div>
-        </div>`;
-      }).join('');
-    }
-    async function viewProperty(pid) {
-      AppState.currentProperty = AppState.properties.find(function(p) { return p.id === pid; });
-      if (!AppState.currentProperty) return;
-      $('units-property-name').textContent = AppState.currentProperty.name;
-      $('units-property-address').textContent = AppState.currentProperty.address + ', ' + AppState.currentProperty.city;
-      await loadUnitsForProperty(pid);
-      showPage('units');
-    }
-    async function loadUnitsForProperty(pid) {
-      const { data, error } = await supabaseClient.from('units').select('*, leases!left(tenants(full_name), status, rent_amount, end_date)').eq('property_id', pid).order('unit_number');
-      if (error) { showToast('Error loading units', 'error'); return; }
-      AppState.units = data || [];
-      $('units-count').textContent = AppState.units.length + ' units';
-      renderUnits();
-    }
-    function renderUnits() {
-      const container = $('units-list');
-      if (!AppState.units.length) {
-        container.innerHTML = '<p class="text-gray-500 col-span-full text-center py-12">No units yet. Add your first unit.</p>';
-        return;
-      }
-      container.innerHTML = AppState.units.map(function(u) {
-        const lease = u.leases && u.leases[0] ? u.leases[0] : null;
-        const isOccupied = u.status === 'occupied' && lease;
-        const tenantName = lease && lease.tenants && lease.tenants.full_name ? lease.tenants.full_name : 'Unknown';
-        if (isOccupied) {
-          return `<div class="glass rounded-xl p-5">
-            <div class="flex items-start justify-between mb-3">
-              <div>
-                <h4 class="font-semibold text-white text-lg">Unit ${esc(u.unit_number)}</h4>
-                <p class="text-sm text-gray-400">${u.bedrooms} bed, ${u.bathrooms} bath</p>
-              </div>
-              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(u.status)}">${esc(u.status)}</span>
-            </div>
-            <p class="text-emerald-400 font-medium">${formatCurrency(u.rent_amount, u.currency)}<span class="text-gray-500 text-sm font-normal">/month</span></p>
-            <div class="mt-3 pt-3 border-t border-gray-800">
-              <p class="text-sm text-gray-300">Tenant: <span class="text-white">${esc(tenantName)}</span></p>
-              <p class="text-sm text-gray-500">Lease ends: ${formatDate(lease.end_date)}</p>
-            </div>
-            <div class="mt-3 flex gap-2">
-              <button onclick="openPaymentModal('${lease.id}')" class="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-sm transition-colors">Log Payment</button>
-              <button onclick="openMaintenanceModal('${u.id}')" class="flex-1 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-sm transition-colors">Maintenance</button>
-            </div>
-          </div>`;
-        } else {
-          return `<div class="glass rounded-xl p-5">
-            <div class="flex items-start justify-between mb-3">
-              <div>
-                <h4 class="font-semibold text-white text-lg">Unit ${esc(u.unit_number)}</h4>
-                <p class="text-sm text-gray-400">${u.bedrooms} bed, ${u.bathrooms} bath</p>
-              </div>
-              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(u.status)}">${esc(u.status)}</span>
-            </div>
-            <p class="text-emerald-400 font-medium">${formatCurrency(u.rent_amount, u.currency)}<span class="text-gray-500 text-sm font-normal">/month</span></p>
-            <div class="mt-3 pt-3 border-t border-gray-800">
-              <p class="text-sm text-gray-500">Vacant - ready for tenant</p>
-            </div>
-            <div class="mt-3">
-              <button onclick="openLeaseModal(null, '${u.id}')" class="w-full px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm transition-colors">Create Lease</button>
-            </div>
-          </div>`;
-        }
-      }).join('');
-    }
+        </div>
+      </div>
 
-    // ==================== TENANTS ====================
-    async function loadTenants() {
-      if (!AppState.user) return;
-      const { data, error } = await supabaseClient.from('tenants').select('*, leases(unit_id, units(unit_number, properties(name)), status)').eq('landlord_id', AppState.user.id).order('created_at', { ascending: false });
-      if (error) { showToast('Error loading tenants', 'error'); return; }
-      AppState.tenants = data || [];
-      renderTenants();
-    }
-    function renderTenants() {
-      const tbody = $('tenants-list');
-      if (!AppState.tenants.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No tenants yet. Add your first tenant.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = AppState.tenants.map(function(t) {
-        const lease = t.leases && t.leases[0] ? t.leases[0] : null;
-        const unitInfo = lease ? esc(lease.units && lease.units.properties && lease.units.properties.name ? lease.units.properties.name : '') + ' - Unit ' + esc(lease.units && lease.units.unit_number ? lease.units.unit_number : '') : 'Not assigned';
-        const status = lease && lease.status ? lease.status : 'no lease';
-        return `<tr class="hover:bg-gray-800/30 transition-colors">
-          <td class="px-4 py-3">
-            <p class="font-medium text-white">${esc(t.full_name)}</p>
-            <p class="text-sm text-gray-500">${esc(t.id_number || '')}</p>
-          </td>
-          <td class="px-4 py-3">
-            <p class="text-sm text-gray-300">${esc(t.phone)}</p>
-            <p class="text-sm text-gray-500">${esc(t.email || '')}</p>
-          </td>
-          <td class="px-4 py-3 text-sm text-gray-300">${unitInfo}</td>
-          <td class="px-4 py-3">
-            <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(lease && lease.status ? lease.status : 'vacant')}">${esc(status)}</span>
-          </td>
-          <td class="px-4 py-3 text-right">
-            ${t.id_document_url ? `<a href="#" onclick="viewIdDocument('${t.id_document_url}'); return false;" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">View ID</a>` : ''}
-            <button onclick="openTenantModal('${t.id}')" class="text-sm text-blue-400 hover:text-blue-300">Edit</button>
-          </td>
-        </tr>`;
-      }).join('');
-    }
+      <!-- PROPERTIES -->
+      <div id="page-properties" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h2>Properties</h2>
+          <button class="btn btn-accent" onclick="openModal('property')">+ Add Property</button>
+        </div>
+        <div id="properties-list" class="grid-3"></div>
+      </div>
 
-    // ==================== LEASES ====================
-    async function loadLeases() {
-      if (!AppState.user) return;
-      const { data, error } = await supabaseClient.from('leases').select('*, tenants(full_name, phone), units(unit_number, properties(name, landlord_id))').eq('units.properties.landlord_id', AppState.user.id).order('created_at', { ascending: false });
-      if (error) { showToast('Error loading leases', 'error'); return; }
-      AppState.leases = data || [];
-      renderLeases();
-    }
-    function renderLeases() {
-      const tbody = $('leases-list');
-      if (!AppState.leases.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No leases yet. Create your first lease.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = AppState.leases.map(function(l) {
-        const tenantName = l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown';
-        const tenantPhone = l.tenants && l.tenants.phone ? l.tenants.phone : '';
-        const propName = l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '';
-        const unitNum = l.units && l.units.unit_number ? l.units.unit_number : '';
-        return `<tr class="hover:bg-gray-800/30 transition-colors">
-          <td class="px-4 py-3">
-            <p class="font-medium text-white">${esc(tenantName)}</p>
-            <p class="text-sm text-gray-500">${esc(tenantPhone)}</p>
-          </td>
-          <td class="px-4 py-3 text-sm text-gray-300">
-            ${esc(propName)}<br><span class="text-gray-500">Unit ${esc(unitNum)}</span>
-          </td>
-          <td class="px-4 py-3 text-sm text-emerald-400 font-medium">${formatCurrency(l.rent_amount, l.currency)}</td>
-          <td class="px-4 py-3 text-sm text-gray-300">${formatDate(l.start_date)} - ${formatDate(l.end_date)}</td>
-          <td class="px-4 py-3">
-            <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(l.status)}">${esc(l.status)}</span>
-          </td>
-          <td class="px-4 py-3 text-right">
-            ${l.lease_document_url ? `<a href="#" onclick="viewLeaseDocument('${l.lease_document_url}'); return false;" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">View Doc</a>` : ''}
-            <button onclick="terminateLease('${l.id}')" class="text-sm ${l.status === 'active' ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed'}">${l.status === 'active' ? 'Terminate' : 'Ended'}</button>
-          </td>
-        </tr>`;
-      }).join('');
-    }
+      <!-- UNITS -->
+      <div id="page-units" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h2>Units</h2>
+          <button class="btn btn-accent" onclick="openModal('unit')">+ Add Unit</button>
+        </div>
+        <input type="text" class="search-box" id="unit-search" placeholder="Search units..." oninput="renderUnits()">
+        <div id="units-list"></div>
+      </div>
 
-    // ==================== PAYMENTS ====================
-    async function loadPayments() {
-      if (!AppState.user) return;
-      const { data, error } = await supabaseClient.from('payments').select('*, leases(tenants(full_name), units(unit_number, properties(name)))').eq('leases.units.properties.landlord_id', AppState.user.id).order('payment_date', { ascending: false }).limit(100);
-      if (error) { showToast('Error loading payments', 'error'); return; }
-      AppState.payments = data || [];
-      renderPayments();
-    }
-    function renderPayments() {
-      const tbody = $('payments-list');
-      if (!AppState.payments.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No payments yet. Log your first payment.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = AppState.payments.map(function(p) {
-        const tenantName = p.leases && p.leases.tenants && p.leases.tenants.full_name ? p.leases.tenants.full_name : 'Unknown';
-        return `<tr class="hover:bg-gray-800/30 transition-colors">
-          <td class="px-4 py-3 font-mono text-sm text-gray-300">${esc(p.receipt_number || '-')}</td>
-          <td class="px-4 py-3 text-sm text-white">${esc(tenantName)}</td>
-          <td class="px-4 py-3 text-sm font-medium text-emerald-400">${formatCurrency(p.amount, 'USD')}</td>
-          <td class="px-4 py-3 text-sm text-gray-300">${formatDate(p.payment_date)}</td>
-          <td class="px-4 py-3 text-sm text-gray-400 capitalize">${esc(p.payment_method || 'cash')}</td>
-          <td class="px-4 py-3">
-            <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(p.status)}">${esc(p.status)}</span>
-          </td>
-          <td class="px-4 py-3 text-right">
-            <button onclick="downloadReceipt('${p.id}')" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">Receipt</button>
-            ${p.receipt_url ? `<a href="${p.receipt_url}" target="_blank" class="text-sm text-blue-400 hover:text-blue-300 mr-3">PDF</a>` : ''}
-          </td>
-        </tr>`;
-      }).join('');
-    }
+      <!-- TENANTS -->
+      <div id="page-tenants" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h2>Tenants</h2>
+          <button class="btn btn-accent" onclick="openModal('tenant')">+ Add Tenant</button>
+        </div>
+        <div id="tenants-list"></div>
+      </div>
 
-    // ==================== MAINTENANCE ====================
-    async function loadMaintenance() {
-      if (!AppState.user) return;
-      const { data, error } = await supabaseClient.from('maintenance_requests').select('*, units(unit_number, properties(name)), tenants(full_name)').eq('units.properties.landlord_id', AppState.user.id).order('created_at', { ascending: false });
-      if (error) { showToast('Error loading maintenance', 'error'); return; }
-      AppState.maintenance = data || [];
-      renderMaintenance();
-    }
-    function renderMaintenance() {
-      const container = $('maintenance-list');
-      if (!AppState.maintenance.length) {
-        container.innerHTML = '<p class="text-gray-500 text-center py-12">No maintenance requests yet.</p>';
-        return;
-      }
-      container.innerHTML = AppState.maintenance.map(function(m) {
-        const propName = m.units && m.units.properties && m.units.properties.name ? m.units.properties.name : '';
-        const unitNum = m.units && m.units.unit_number ? m.units.unit_number : '';
-        const tenantName = m.tenants && m.tenants.full_name ? m.tenants.full_name : '';
-        const photosHtml = m.photo_urls && m.photo_urls.length ? '<div class="flex gap-2 mb-3">' + m.photo_urls.map(function(url) { return `<img src="${url}" class="w-16 h-16 object-cover rounded-lg border border-gray-700">`; }).join('') + '</div>' : '';
-        const actionButtons = m.status !== 'resolved' && m.status !== 'closed' ? 
-          `<button onclick="updateMaintenanceStatus('${m.id}', 'in_progress')" class="px-3 py-1 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded text-sm transition-colors">In Progress</button>
-          <button onclick="updateMaintenanceStatus('${m.id}', 'resolved')" class="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded text-sm transition-colors">Resolve</button>` : 
-          (m.status === 'resolved' ? `<button onclick="updateMaintenanceStatus('${m.id}', 'closed')" class="px-3 py-1 bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 rounded text-sm transition-colors">Close</button>` : '');
-        const resolutionHtml = m.resolution_notes ? `<p class="text-xs text-gray-500 mt-2">Resolution: ${esc(m.resolution_notes)}</p>` : '';
-        return `<div class="glass rounded-xl p-5">
-          <div class="flex items-start justify-between mb-3">
-            <div>
-              <h4 class="font-semibold text-white">${esc(m.title)}</h4>
-              <p class="text-sm text-gray-400">${esc(propName)} - Unit ${esc(unitNum)}</p>
-              ${tenantName ? `<p class="text-sm text-gray-500">Reported by: ${esc(tenantName)}</p>` : ''}
+      <!-- LEASES -->
+      <div id="page-leases" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h2>Leases</h2>
+          <button class="btn btn-accent" onclick="openModal('lease')">+ Add Lease</button>
+        </div>
+        <div id="leases-list"></div>
+      </div>
+
+      <!-- PAYMENTS -->
+      <div id="page-payments" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h2>Payments</h2>
+          <button class="btn btn-accent" onclick="openModal('payment')">+ Record Payment</button>
+        </div>
+        <div id="payments-list"></div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div id="page-notifications" class="tab-content">
+        <h2 style="margin-bottom:20px">Notifications</h2>
+        <div id="notifications-list"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="page-settings" class="tab-content">
+        <h2 style="margin-bottom:20px">Settings</h2>
+        <div class="card">
+          <h3 style="margin-bottom:16px">Profile</h3>
+          <form id="settings-form" onsubmit="handleSettingsSave(event)">
+            <div class="form-group"><label>Full Name</label><input type="text" id="set-name"></div>
+            <div class="form-group"><label>Business Name</label><input type="text" id="set-business"></div>
+            <div class="form-group"><label>Phone</label><input type="tel" id="set-phone"></div>
+            <div class="form-group"><label>Telegram Chat ID</label><input type="text" id="set-telegram" placeholder="Get from @BotFather"></div>
+            <div class="form-group">
+              <label><input type="checkbox" id="set-telegram-enabled"> Enable Telegram Bot Notifications</label>
             </div>
-            <div class="flex gap-2">
-              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(m.priority)}">${esc(m.priority)}</span>
-              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(m.status)}">${esc(m.status)}</span>
-            </div>
-          </div>
-          <p class="text-sm text-gray-300 mb-3">${esc(m.description || '')}</p>
-          ${photosHtml}
-          <div class="flex items-center justify-between pt-3 border-t border-gray-800">
-            <span class="text-xs text-gray-500">${formatDate(m.created_at)}</span>
-            <div class="flex gap-2">${actionButtons}</div>
-          </div>
-          ${resolutionHtml}
-        </div>`;
-      }).join('');
-    }
+            <button type="submit" class="btn btn-accent">Save Changes</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ==================== CONFIG ====================
+const SUPABASE_URL = 'https://jolpglrgumfvddalftfm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvbHBnbHJndW1mdmRkYWxmdGZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTYyMzkwMjIsImV4cCI6MjAzMTgxNTAyMn0.placeholder';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const AppState = { user: null, profile: null, properties: [], units: [], tenants: [], leases: [], payments: [], notifications: [] };
+let isAuthHandling = false;
+
+function $(id) { return document.getElementById(id); }
+
+// ==================== AUTH ====================
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = $('login-email').value;
+  const password = $('login-password').value;
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) { showToast(error.message, 'error'); return; }
+  if (data && data.user) {
+    AppState.user = data.user;
+    await loadProfile();
+    enterApp();
+    showToast('Welcome back!');
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const name = $('reg-name').value;
+  const email = $('reg-email').value;
+  const password = $('reg-password').value;
+  const phone = $('reg-phone').value;
+  const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: name, phone: phone } } });
+  if (error) { showToast(error.message, 'error'); return; }
+  if (data && data.user) {
+    AppState.user = data.user;
+    await supabaseClient.from('profiles').insert({ id: data.user.id, full_name: name, phone: phone, email: email });
+    await loadProfile();
+    enterApp();
+    showToast('Account created!');
+  }
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  AppState.user = null;
+  AppState.profile = null;
+  $('login-page').classList.add('active');
+  $('app-layout').classList.remove('active');
+  $('login-form').reset();
+}
+
+function toggleAuthMode() {
+  const loginForm = $('login-form');
+  const regForm = $('register-form');
+  const toggleText = $('toggle-text');
+  if (loginForm.style.display === 'none') {
+    loginForm.style.display = 'block'; regForm.style.display = 'none';
+    toggleText.innerHTML = 'No account? <a onclick="toggleAuthMode()">Create one</a>';
+  } else {
+    loginForm.style.display = 'none'; regForm.style.display = 'block';
+    toggleText.innerHTML = 'Have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+  }
+}
+
+function enterApp() {
+  $('login-page').classList.remove('active');
+  $('app-layout').classList.add('active');
+  showPage('dashboard');
+  loadAllData();
+}
+
+// ==================== NAVIGATION ====================
+function showPage(page) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  const target = $('page-' + page);
+  if (target) target.classList.add('active');
+  const sidebarItem = document.querySelector('.sidebar-item[data-page="' + page + '"]');
+  if (sidebarItem) sidebarItem.classList.add('active');
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'properties') renderProperties();
+  if (page === 'units') renderUnits();
+  if (page === 'tenants') renderTenants();
+  if (page === 'leases') renderLeases();
+  if (page === 'payments') renderPayments();
+  if (page === 'notifications') renderNotifications();
+  if (page === 'settings') loadSettings();
+}
+
+// ==================== DATA LOADING ====================
+async function loadProfile() {
+  if (!AppState.user) return;
+  const { data } = await supabaseClient.from('profiles').select('*').eq('id', AppState.user.id).single();
+  AppState.profile = data;
+  $('user-name').textContent = data ? data.full_name || 'User' : 'User';
+}
+
+async function loadAllData() {
+  if (!AppState.user) return;
+  const uid = AppState.user.id;
+  const [{ data: props }, { data: units }, { data: tenants }, { data: leases }, { data: payments }, { data: notifications }] = await Promise.all([
+    supabaseClient.from('properties').select('*').eq('landlord_id', uid),
+    supabaseClient.from('units').select('*, properties(name)').eq('properties.landlord_id', uid),
+    supabaseClient.from('tenants').select('*').eq('landlord_id', uid),
+    supabaseClient.from('leases').select('*, tenants(full_name), units(unit_number, properties(name))').eq('units.properties.landlord_id', uid),
+    supabaseClient.from('payments').select('*, leases(tenants(full_name), units(unit_number, properties(name)))').eq('leases.units.properties.landlord_id', uid).order('payment_date', { ascending: false }).limit(10),
+    supabaseClient.from('notifications').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(20)
+  ]);
+  AppState.properties = props || [];
+  AppState.units = units || [];
+  AppState.tenants = tenants || [];
+  AppState.leases = leases || [];
+  AppState.payments = payments || [];
+  AppState.notifications = notifications || [];
+  loadDashboard();
+}
+
+// ==================== DASHBOARD ====================
+function loadDashboard() {
+  const occupied = AppState.units.filter(u => u.status === 'occupied').length;
+  const vacant = AppState.units.filter(u => u.status === 'vacant').length;
+  $('dash-properties').textContent = AppState.properties.length;
+  $('dash-units').textContent = AppState.units.length;
+  $('dash-occupied').textContent = occupied;
+  $('dash-vacant').textContent = vacant;
+
+  const paymentsHtml = AppState.payments.length ? '<table class="table"><thead><tr><th>Date</th><th>Tenant</th><th>Amount</th><th>Status</th></tr></thead><tbody>' +
+    AppState.payments.map(p => {
+      const t = p.leases?.tenants?.full_name || '-';
+      return `<tr><td>${p.payment_date || '-'}</td><td>${t}</td><td>${p.amount || 0} ${p.currency || 'USD'}</td><td><span class="badge badge-green">${p.status || 'completed'}</span></td></tr>`;
+    }).join('') + '</tbody></table>' : '<div class="empty-state"><p>No payments yet</p></div>';
+  $('dash-payments').innerHTML = paymentsHtml;
+
+  const today = new Date().toISOString().split('T')[0];
+  const upcoming = AppState.leases.filter(l => l.status === 'active' && l.end_date >= today).sort((a,b) => a.end_date.localeCompare(b.end_date)).slice(0,5);
+  const expiryHtml = upcoming.length ? '<table class="table"><thead><tr><th>Tenant</th><th>Property</th><th>End Date</th></tr></thead><tbody>' +
+    upcoming.map(l => `<tr><td>${l.tenants?.full_name || '-'}</td><td>${l.units?.properties?.name || '-'} ${l.units?.unit_number || ''}</td><td>${l.end_date}</td></tr>`).join('') + '</tbody></table>' : '<div class="empty-state"><p>No upcoming expirations</p></div>';
+  $('dash-expiry').innerHTML = expiryHtml;
+}
+
+// ==================== PROPERTIES ====================
+function renderProperties() {
+  const container = $('properties-list');
+  if (!AppState.properties.length) { container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No properties yet</h3><p>Add your first property to get started</p></div>'; return; }
+  container.innerHTML = AppState.properties.map(p => `
+    <div class="property-card" onclick="viewProperty('${p.id}')">
+      <div style="height:160px;background:linear-gradient(135deg,#0f172a,#1e3a5f);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px;font-weight:700">${p.name?.charAt(0) || 'P'}</div>
+      <div class="property-card-body">
+        <h4>${p.name || 'Unnamed'}</h4>
+        <p>${p.address || 'No address'} &bull; ${p.type || 'Residential'}</p>
+        <p style="margin-top:8px">${AppState.units.filter(u => u.property_id === p.id).length} units</p>
+      </div>
+    </div>`).join('');
+}
+
+function viewProperty(pid) {
+  const p = AppState.properties.find(x => x.id === pid);
+  if (!p) return;
+  const units = AppState.units.filter(u => u.property_id === pid);
+  const html = `
+    <h3>${p.name}</h3>
+    <p style="color:var(--muted);margin-bottom:16px">${p.address || ''}<br>${p.type || ''} &bull; ${p.city || ''} ${p.country || ''}</p>
+    <h4 style="margin-bottom:12px">Units (${units.length})</h4>
+    ${units.length ? units.map(u => `
+      <div class="unit-row">
+        <div><strong>Unit ${u.unit_number}</strong><br><span style="color:var(--muted);font-size:13px">${u.bedrooms || 0}br / ${u.bathrooms || 0}ba &bull; ${u.area || 0} sqft</span></div>
+        <span class="badge ${u.status === 'occupied' ? 'badge-green' : 'badge-gray'}">${u.status || 'unknown'}</span>
+      </div>
+    `).join('') : '<p>No units in this property</p>'}
+    <div style="margin-top:20px;text-align:right">
+      <button class="btn btn-primary" onclick="closeModal();openModal('unit','${pid}')">+ Add Unit</button>
+    </div>`;
+  $('modal-body').innerHTML = html;
+  $('modal-overlay').classList.add('active');
+}
+
+// ==================== UNITS ====================
+function renderUnits() {
+  const search = ($('unit-search')?.value || '').toLowerCase();
+  const filtered = AppState.units.filter(u => {
+    const term = search;
+    return (u.unit_number || '').toLowerCase().includes(term) || (u.properties?.name || '').toLowerCase().includes(term);
+  });
+  const container = $('units-list');
+  if (!filtered.length) { container.innerHTML = '<div class="empty-state"><p>No units found</p></div>'; return; }
+  container.innerHTML = '<table class="table"><thead><tr><th>Property</th><th>Unit</th><th>Type</th><th>Rent</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+    filtered.map(u => `<tr><td>${u.properties?.name || '-'}</td><td>${u.unit_number || '-'}</td><td>${u.type || '-'}</td><td>${u.rent_amount || 0} ${u.currency || 'USD'}</td><td><span class="badge ${u.status === 'occupied' ? 'badge-green' : 'badge-gray'}">${u.status || 'unknown'}</span></td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal('lease',null,'${u.id}')">Lease</button></td></tr>`).join('') + '</tbody></table>';
+}
+
+// ==================== TENANTS ====================
+function renderTenants() {
+  const container = $('tenants-list');
+  if (!AppState.tenants.length) { container.innerHTML = '<div class="empty-state"><h3>No tenants yet</h3><p>Add tenants and link them to leases</p></div>'; return; }
+  container.innerHTML = '<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>ID Number</th><th>Actions</th></tr></thead><tbody>' +
+    AppState.tenants.map(t => `<tr><td>${t.full_name || '-'}</td><td>${t.email || '-'}</td><td>${t.phone || '-'}</td><td>${t.id_number || '-'}</td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal('lease',null,null,'${t.id}')">New Lease</button></td></tr>`).join('') + '</tbody></table>';
+}
+
+// ==================== LEASES ====================
+function renderLeases() {
+  const container = $('leases-list');
+  if (!AppState.leases.length) { container.innerHTML = '<div class="empty-state"><h3>No leases yet</h3><p>Create leases to track tenant agreements</p></div>'; return; }
+  container.innerHTML = '<table class="table"><thead><tr><th>Tenant</th><th>Property</th><th>Unit</th><th>Start</th><th>End</th><th>Rent</th><th>Status</th></tr></thead><tbody>' +
+    AppState.leases.map(l => `<tr><td>${l.tenants?.full_name || '-'}</td><td>${l.units?.properties?.name || '-'}</td><td>${l.units?.unit_number || '-'}</td><td>${l.start_date || '-'}</td><td>${l.end_date || '-'}</td><td>${l.rent_amount || 0} ${l.currency || 'USD'}</td><td><span class="badge ${l.status === 'active' ? 'badge-green' : 'badge-red'}">${l.status || 'unknown'}</span></td></tr>`).join('') + '</tbody></table>';
+}
+
+// ==================== PAYMENTS ====================
+function renderPayments() {
+  const container = $('payments-list');
+  if (!AppState.payments.length) { container.innerHTML = '<div class="empty-state"><h3>No payments recorded</h3><p>Record rent payments to generate receipts</p></div>'; return; }
+  container.innerHTML = '<table class="table"><thead><tr><th>Receipt #</th><th>Date</th><th>Tenant</th><th>Property</th><th>Amount</th><th>Method</th><th>Actions</th></tr></thead><tbody>' +
+    AppState.payments.map(p => `<tr><td>${p.receipt_number || '-'}</td><td>${p.payment_date || '-'}</td><td>${p.leases?.tenants?.full_name || '-'}</td><td>${p.leases?.units?.properties?.name || '-'} ${p.leases?.units?.unit_number || ''}</td><td>${p.amount || 0} ${p.currency || 'USD'}</td><td>${p.payment_method || 'cash'}</td><td>${p.receipt_url ? `<a href="${p.receipt_url}" target="_blank" class="btn btn-primary" style="padding:4px 10px;font-size:12px">View Receipt</a>` : '<span style="font-size:12px;color:var(--muted)">No receipt</span>'}</td></tr>`).join('') + '</tbody></table>';
+}
+
+// ==================== NOTIFICATIONS ====================
+function renderNotifications() {
+  const container = $('notifications-list');
+  if (!AppState.notifications.length) { container.innerHTML = '<div class="empty-state"><p>No notifications</p></div>'; return; }
+  container.innerHTML = AppState.notifications.map(n => `
+    <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <p style="font-weight:500">${n.type || 'Notification'}</p>
+        <p style="color:var(--muted);font-size:13px">${n.message || ''}</p>
+        <p style="color:var(--muted);font-size:12px;margin-top:4px">${n.created_at ? new Date(n.created_at).toLocaleString() : ''}</p>
+      </div>
+      <span class="badge ${n.status === 'sent' ? 'badge-green' : n.status === 'failed' ? 'badge-red' : 'badge-yellow'}">${n.status || 'pending'}</span>
+    </div>
+  `).join('');
+}
+
+// ==================== SETTINGS ====================
+function loadSettings() {
+  if (!AppState.profile) return;
+  $('set-name').value = AppState.profile.full_name || '';
+  $('set-business').value = AppState.profile.business_name || '';
+  $('set-phone').value = AppState.profile.phone || '';
+  $('set-telegram').value = AppState.profile.telegram_chat_id || '';
+  $('set-telegram-enabled').checked = AppState.profile.telegram_bot_enabled || false;
+}
+
+async function handleSettingsSave(e) {
+  e.preventDefault();
+  if (!AppState.user) return;
+  const updates = {
+    full_name: $('set-name').value,
+    business_name: $('set-business').value,
+    phone: $('set-phone').value,
+    telegram_chat_id: $('set-telegram').value,
+    telegram_bot_enabled: $('set-telegram-enabled').checked
+  };
+  const { error } = await supabaseClient.from('profiles').update(updates).eq('id', AppState.user.id);
+  if (error) { showToast(error.message, 'error'); return; }
+  AppState.profile = { ...AppState.profile, ...updates };
+  $('user-name').textContent = updates.full_name || 'User';
+  showToast('Settings saved!');
+}
+
+// ==================== MODALS & FORMS ====================
+function openModal(type, propertyId, unitId, tenantId) {
+  let html = '';
+  if (type === 'property') {
+    html = `<h3>Add Property</h3><form onsubmit="saveProperty(event)">
+      <div class="form-group"><label>Name</label><input type="text" id="prop-name" required></div>
+      <div class="form-group"><label>Address</label><input type="text" id="prop-address"></div>
+      <div class="form-group"><label>City</label><input type="text" id="prop-city"></div>
+      <div class="form-group"><label>Country</label><input type="text" id="prop-country"></div>
+      <div class="form-group"><label>Type</label><select id="prop-type"><option>Residential</option><option>Commercial</option><option>Mixed</option></select></div>
+      <button type="submit" class="btn btn-accent">Save Property</button>
+    </form>`;
+  } else if (type === 'unit') {
+    html = `<h3>Add Unit</h3><form onsubmit="saveUnit(event,'${propertyId || ''}')">
+      <div class="form-group"><label>Property</label><select id="unit-prop">${AppState.properties.map(p => `<option value="${p.id}" ${p.id === propertyId ? 'selected' : ''}>${p.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Unit Number</label><input type="text" id="unit-number" required></div>
+      <div class="form-group"><label>Type</label><select id="unit-type"><option>Studio</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option><option>Commercial</option></select></div>
+      <div class="form-group"><label>Bedrooms</label><input type="number" id="unit-beds" value="0"></div>
+      <div class="form-group"><label>Bathrooms</label><input type="number" id="unit-baths" value="0"></div>
+      <div class="form-group"><label>Area (sqft)</label><input type="number" id="unit-area" value="0"></div>
+      <div class="form-group"><label>Rent Amount</label><input type="number" id="unit-rent" value="0"></div>
+      <div class="form-group"><label>Currency</label><input type="text" id="unit-currency" value="USD"></div>
+      <button type="submit" class="btn btn-accent">Save Unit</button>
+    </form>`;
+  } else if (type === 'tenant') {
+    html = `<h3>Add Tenant</h3><form onsubmit="saveTenant(event)">
+      <div class="form-group"><label>Full Name</label><input type="text" id="ten-name" required></div>
+      <div class="form-group"><label>Email</label><input type="email" id="ten-email"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="ten-phone"></div>
+      <div class="form-group"><label>ID Number</label><input type="text" id="ten-id"></div>
+      <div class="form-group"><label>Emergency Contact</label><input type="text" id="ten-emergency"></div>
+      <button type="submit" class="btn btn-accent">Save Tenant</button>
+    </form>`;
+  } else if (type === 'lease') {
+    html = `<h3>Add Lease</h3><form onsubmit="saveLease(event)">
+      <div class="form-group"><label>Unit</label><select id="lease-unit">${AppState.units.filter(u => u.status === 'vacant').map(u => `<option value="${u.id}">${u.properties?.name || ''} - Unit ${u.unit_number}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Tenant</label><select id="lease-tenant">${AppState.tenants.map(t => `<option value="${t.id}">${t.full_name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Start Date</label><input type="date" id="lease-start" required></div>
+      <div class="form-group"><label>End Date</label><input type="date" id="lease-end" required></div>
+      <div class="form-group"><label>Rent Amount</label><input type="number" id="lease-rent" required></div>
+      <div class="form-group"><label>Currency</label><input type="text" id="lease-currency" value="USD"></div>
+      <div class="form-group"><label>Deposit</label><input type="number" id="lease-deposit" value="0"></div>
+      <div class="form-group"><label>Payment Day</label><input type="number" id="lease-day" value="1" min="1" max="31"></div>
+      <button type="submit" class="btn btn-accent">Save Lease</button>
+    </form>`;
+    if (unitId) setTimeout(() => { const s = $('lease-unit'); if(s) s.value = unitId; }, 0);
+    if (tenantId) setTimeout(() => { const s = $('lease-tenant'); if(s) s.value = tenantId; }, 0);
+  } else if (type === 'payment') {
+    html = `<h3>Record Payment</h3><form onsubmit="savePayment(event)">
+      <div class="form-group"><label>Lease</label><select id="pay-lease">${AppState.leases.filter(l => l.status === 'active').map(l => `<option value="${l.id}">${l.tenants?.full_name || ''} - ${l.units?.properties?.name || ''} ${l.units?.unit_number || ''}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Amount</label><input type="number" id="pay-amount" required></div>
+      <div class="form-group"><label>Payment Date</label><input type="date" id="pay-date" required></div>
+      <div class="form-group"><label>Method</label><select id="pay-method"><option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option><option value="credit_card">Credit Card</option><option value="check">Check</option><option value="mobile_money">Mobile Money</option></select></div>
+      <div class="form-group"><label>Notes</label><input type="text" id="pay-notes"></div>
+      <button type="submit" class="btn btn-accent">Record Payment</button>
+    </form>`;
+  }
+  $('modal-body').innerHTML = html;
+  $('modal-overlay').classList.add('active');
+}
+
+function closeModal(e) {
+  if (!e || e.target === $('modal-overlay') || e.target.classList.contains('modal-close')) {
+    $('modal-overlay').classList.remove('active');
+  }
+}
+
+async function saveProperty(e) {
+  e.preventDefault();
+  const { data, error } = await supabaseClient.from('properties').insert({
+    landlord_id: AppState.user.id,
+    name: $('prop-name').value,
+    address: $('prop-address').value,
+    city: $('prop-city').value,
+    country: $('prop-country').value,
+    type: $('prop-type').value
+  }).select().single();
+  if (error) { showToast(error.message, 'error'); return; }
+  AppState.properties.push(data);
+  closeModal(); renderProperties(); showToast('Property added!');
+}
+
+async function saveUnit(e, propId) {
+  e.preventDefault();
+  const pid = propId || $('unit-prop').value;
+  const { data, error } = await supabaseClient.from('units').insert({
+    property_id: pid,
+    unit_number: $('unit-number').value,
+    type: $('unit-type').value,
+    bedrooms: parseInt($('unit-beds').value) || 0,
+    bathrooms: parseInt($('unit-baths').value) || 0,
+    area: parseInt($('unit-area').value) || 0,
+    rent_amount: parseFloat($('unit-rent').value) || 0,
+    currency: $('unit-currency').value,
+    status: 'vacant'
+  }).select().single();
+  if (error) { showToast(error.message, 'error'); return; }
+  data.properties = AppState.properties.find(p => p.id === pid);
+  AppState.units.push(data);
+  closeModal(); renderUnits(); showToast('Unit added!');
+}
+
+async function saveTenant(e) {
+  e.preventDefault();
+  const { data, error } = await supabaseClient.from('tenants').insert({
+    landlord_id: AppState.user.id,
+    full_name: $('ten-name').value,
+    email: $('ten-email').value,
+    phone: $('ten-phone').value,
+    id_number: $('ten-id').value,
+    emergency_contact: $('ten-emergency').value
+  }).select().single();
+  if (error) { showToast(error.message, 'error'); return; }
+  AppState.tenants.push(data);
+  closeModal(); renderTenants(); showToast('Tenant added!');
+}
+
+async function saveLease(e) {
+  e.preventDefault();
+  const { data, error } = await supabaseClient.from('leases').insert({
+    unit_id: $('lease-unit').value,
+    tenant_id: $('lease-tenant').value,
+    start_date: $('lease-start').value,
+    end_date: $('lease-end').value,
+    rent_amount: parseFloat($('lease-rent').value) || 0,
+    currency: $('lease-currency').value,
+    deposit_amount: parseFloat($('lease-deposit').value) || 0,
+    payment_day: parseInt($('lease-day').value) || 1,
+    status: 'active'
+  }).select().single();
+  if (error) { showToast(error.message, 'error'); return; }
+  await supabaseClient.from('units').update({ status: 'occupied' }).eq('id', $('lease-unit').value);
+  const unit = AppState.units.find(u => u.id === $('lease-unit').value);
+  if (unit) unit.status = 'occupied';
+  data.tenants = AppState.tenants.find(t => t.id === $('lease-tenant').value);
+  data.units = unit;
+  AppState.leases.push(data);
+  closeModal(); renderLeases(); renderUnits(); showToast('Lease created!');
+}
+
+async function savePayment(e) {
+  e.preventDefault();
+  const leaseId = $('pay-lease').value;
+  const lease = AppState.leases.find(l => l.id === leaseId);
+  const receiptNum = 'RCP-' + Date.now();
+  const { data, error } = await supabaseClient.from('payments').insert({
+    lease_id: leaseId,
+    amount: parseFloat($('pay-amount').value) || 0,
+    payment_date: $('pay-date').value,
+    payment_method: $('pay-method').value,
+    notes: $('pay-notes').value,
+    receipt_number: receiptNum,
+    currency: lease?.currency || 'USD',
+    status: 'completed'
+  }).select().single();
+  if (error) { showToast(error.message, 'error'); return; }
+  data.leases = lease;
+  AppState.payments.unshift(data);
+  closeModal(); renderPayments(); loadDashboard(); showToast('Payment recorded!');
+}
+
+// ==================== UTILITIES ====================
+function showToast(msg, type) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.className = 'toast toast-' + (type || 'success');
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+
+// ==================== EVENT LISTENERS ====================
+$('login-form').addEventListener('submit', handleLogin);
+$('register-form').addEventListener('submit', handleRegister);
+
+// Auth state change - ONLY handle initial session and logout
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if (event === 'INITIAL_SESSION' && session) {
+    AppState.user = session.user;
+    loadProfile().then(() => { enterApp(); loadAllData(); });
+  } else if (event === 'SIGNED_OUT') {
+    AppState.user = null;
+    AppState.profile = null;
+    $('login-page').classList.add('active');
+    $('app-layout').classList.remove('active');
+  }
+});
+
+// Check existing session on load
+supabaseClient.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    AppState.user = session.user;
+    loadProfile().then(() => { enterApp(); loadAllData(); });
+  }
+});
+</script>
+</body>
+</html>
