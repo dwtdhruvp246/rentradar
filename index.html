@@ -418,7 +418,7 @@ function renderProperties() {
   const container = $('properties-list');
   if (!AppState.properties.length) { container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No properties yet</h3><p>Add your first property to get started</p></div>'; return; }
   container.innerHTML = AppState.properties.map(p => 
-    '<div class="property-card" onclick="viewProperty('' + p.id + '')">' +
+    '<div class="property-card" onclick="viewProperty(' + "'" + p.id + "'" + ')">' +
     '<div style="height:160px;background:linear-gradient(135deg,#0f172a,#1e3a5f);display:flex;align-items:center;justify-content:center;color:#fff;font-size:48px;font-weight:700">' + (p.name?.charAt(0) || 'P') + '</div>' +
     '<div class="property-card-body"><h4>' + (p.name || 'Unnamed') + '</h4><p>' + (p.address || 'No address') + ' &bull; ' + (p.type || 'Residential') + '</p><p style="margin-top:8px">' + AppState.units.filter(u => u.property_id === p.id).length + ' units</p></div></div>'
   ).join('');
@@ -431,7 +431,7 @@ function viewProperty(pid) {
   const html = '<h3>' + p.name + '</h3><p style="color:var(--muted);margin-bottom:16px">' + (p.address || '') + '<br>' + (p.type || '') + ' &bull; ' + (p.city || '') + ' ' + (p.country || '') + '</p>' +
     '<h4 style="margin-bottom:12px">Units (' + units.length + ')</h4>' +
     (units.length ? units.map(u => '<div class="unit-row"><div><strong>Unit ' + u.unit_number + '</strong><br><span style="color:var(--muted);font-size:13px">' + (u.bedrooms || 0) + 'br / ' + (u.bathrooms || 0) + 'ba &bull; ' + (u.area || 0) + ' sqft</span></div><span class="badge ' + (u.status === 'occupied' ? 'badge-green' : 'badge-gray') + '">' + (u.status || 'unknown') + '</span></div>').join('') : '<p>No units in this property</p>') +
-    '<div style="margin-top:20px;text-align:right"><button class="btn btn-primary" onclick="closeModal();openModal('unit','' + pid + '')">+ Add Unit</button></div>';
+    '<div style="margin-top:20px;text-align:right"><button class="btn btn-primary" onclick="closeModal();openModal(' + "'unit'," + "'" + pid + "'" + ')">+ Add Unit</button></div>';
   $('modal-body').innerHTML = html;
   $('modal-overlay').classList.add('active');
 }
@@ -453,7 +453,7 @@ function renderTenants() {
   const container = $('tenants-list');
   if (!AppState.tenants.length) { container.innerHTML = '<div class="empty-state"><h3>No tenants yet</h3><p>Add tenants and link them to leases</p></div>'; return; }
   container.innerHTML = '<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>ID Number</th><th>Actions</th></tr></thead><tbody>' +
-    AppState.tenants.map(t => '<tr><td>' + (t.full_name || '-') + '</td><td>' + (t.email || '-') + '</td><td>' + (t.phone || '-') + '</td><td>' + (t.id_number || '-') + '</td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal('lease',null,null,'' + t.id + '')">New Lease</button></td></tr>').join('') + '</tbody></table>';
+    AppState.tenants.map(t => '<tr><td>' + (t.full_name || '-') + '</td><td>' + (t.email || '-') + '</td><td>' + (t.phone || '-') + '</td><td>' + (t.id_number || '-') + '</td><td>'<button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="openModal(' + "'lease',null,null," + "'" + t.id + "'" + ')">New Lease</button>'</td></tr>').join('') + '</tbody></table>';
 }
 
 // ==================== LEASES ====================
