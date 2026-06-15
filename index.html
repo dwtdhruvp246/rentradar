@@ -753,16 +753,20 @@
       if (expiringLeases && expiringLeases.length > 0) {
         expiryList.innerHTML = expiringLeases.map(function(l) {
           const daysLeft = Math.ceil((new Date(l.end_date) - new Date()) / (1000 * 60 * 60 * 24));
-          return '<div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">' +
-            '<div>' +
-              '<p class="font-medium text-white">' + esc(l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown') + '</p>' +
-              '<p class="text-sm text-gray-400">' + esc(l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '') + ' - Unit ' + esc(l.units && l.units.unit_number ? l.units.unit_number : '') + '</p>' +
-            '</div>' +
-            '<div class="text-right">' +
-              '<p class="text-sm font-medium ' + (daysLeft <= 30 ? 'text-red-400' : 'text-yellow-400') + '">' + daysLeft + ' days left</p>' +
-              '<p class="text-xs text-gray-500">' + formatDate(l.end_date) + '</p>' +
-            '</div>' +
-          '</div>';
+          const name = l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown';
+          const propName = l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '';
+          const unitNum = l.units && l.units.unit_number ? l.units.unit_number : '';
+          const colorClass = daysLeft <= 30 ? 'text-red-400' : 'text-yellow-400';
+          return `<div class="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+            <div>
+              <p class="font-medium text-white">${esc(name)}</p>
+              <p class="text-sm text-gray-400">${esc(propName)} - Unit ${esc(unitNum)}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-medium ${colorClass}">${daysLeft} days left</p>
+              <p class="text-xs text-gray-500">${formatDate(l.end_date)}</p>
+            </div>
+          </div>`;
         }).join('');
       } else {
         expiryList.innerHTML = '<p class="text-gray-500 text-center py-4">No upcoming expiries in the next 60 days</p>';
@@ -784,18 +788,19 @@
         return;
       }
       container.innerHTML = AppState.properties.map(function(p) {
-        return '<div class="glass rounded-xl p-5 hover:bg-white/10 transition-colors cursor-pointer" onclick="viewProperty('' + p.id + '')">' +
-          '<div class="flex items-start justify-between mb-3">' +
-            '<h4 class="font-semibold text-white text-lg">' + esc(p.name) + '</h4>' +
-            '<span class="px-2 py-1 rounded-full text-xs font-medium ' + (p.property_type === 'residential' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400') + '">' + esc(p.property_type) + '</span>' +
-          '</div>' +
-          '<p class="text-gray-400 text-sm mb-1">' + esc(p.address) + '</p>' +
-          '<p class="text-gray-500 text-sm">' + esc(p.city) + ', ' + esc(p.country) + '</p>' +
-          '<div class="mt-4 flex items-center justify-between">' +
-            '<span class="text-sm text-gray-400">Click to view units</span>' +
-            '<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
-          '</div>' +
-        '</div>';
+        const typeClass = p.property_type === 'residential' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400';
+        return `<div class="glass rounded-xl p-5 hover:bg-white/10 transition-colors cursor-pointer" onclick="viewProperty('${p.id}')">
+          <div class="flex items-start justify-between mb-3">
+            <h4 class="font-semibold text-white text-lg">${esc(p.name)}</h4>
+            <span class="px-2 py-1 rounded-full text-xs font-medium ${typeClass}">${esc(p.property_type)}</span>
+          </div>
+          <p class="text-gray-400 text-sm mb-1">${esc(p.address)}</p>
+          <p class="text-gray-500 text-sm">${esc(p.city)}, ${esc(p.country)}</p>
+          <div class="mt-4 flex items-center justify-between">
+            <span class="text-sm text-gray-400">Click to view units</span>
+            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </div>
+        </div>`;
       }).join('');
     }
     async function viewProperty(pid) {
@@ -822,33 +827,44 @@
       container.innerHTML = AppState.units.map(function(u) {
         const lease = u.leases && u.leases[0] ? u.leases[0] : null;
         const isOccupied = u.status === 'occupied' && lease;
-        return '<div class="glass rounded-xl p-5">' +
-          '<div class="flex items-start justify-between mb-3">' +
-            '<div>' +
-              '<h4 class="font-semibold text-white text-lg">Unit ' + esc(u.unit_number) + '</h4>' +
-              '<p class="text-sm text-gray-400">' + u.bedrooms + ' bed, ' + u.bathrooms + ' bath</p>' +
-            '</div>' +
-            '<span class="px-2 py-1 rounded-full text-xs font-medium ' + getStatusBadge(u.status) + '">' + esc(u.status) + '</span>' +
-          '</div>' +
-          '<p class="text-emerald-400 font-medium">' + formatCurrency(u.rent_amount, u.currency) + '<span class="text-gray-500 text-sm font-normal">/month</span></p>' +
-          (isOccupied ? 
-            '<div class="mt-3 pt-3 border-t border-gray-800">' +
-              '<p class="text-sm text-gray-300">Tenant: <span class="text-white">' + esc(lease.tenants && lease.tenants.full_name ? lease.tenants.full_name : 'Unknown') + '</span></p>' +
-              '<p class="text-sm text-gray-500">Lease ends: ' + formatDate(lease.end_date) + '</p>' +
-            '</div>' +
-            '<div class="mt-3 flex gap-2">' +
-              '<button onclick="openPaymentModal('' + lease.id + '')" class="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-sm transition-colors">Log Payment</button>' +
-              '<button onclick="openMaintenanceModal('' + u.id + '')" class="flex-1 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-sm transition-colors">Maintenance</button>' +
-            '</div>'
-           : 
-            '<div class="mt-3 pt-3 border-t border-gray-800">' +
-              '<p class="text-sm text-gray-500">Vacant - ready for tenant</p>' +
-            '</div>' +
-            '<div class="mt-3">' +
-              '<button onclick="openLeaseModal(null, '' + u.id + '')" class="w-full px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm transition-colors">Create Lease</button>' +
-            '</div>'
-          ) +
-        '</div>';
+        const tenantName = lease && lease.tenants && lease.tenants.full_name ? lease.tenants.full_name : 'Unknown';
+        if (isOccupied) {
+          return `<div class="glass rounded-xl p-5">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h4 class="font-semibold text-white text-lg">Unit ${esc(u.unit_number)}</h4>
+                <p class="text-sm text-gray-400">${u.bedrooms} bed, ${u.bathrooms} bath</p>
+              </div>
+              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(u.status)}">${esc(u.status)}</span>
+            </div>
+            <p class="text-emerald-400 font-medium">${formatCurrency(u.rent_amount, u.currency)}<span class="text-gray-500 text-sm font-normal">/month</span></p>
+            <div class="mt-3 pt-3 border-t border-gray-800">
+              <p class="text-sm text-gray-300">Tenant: <span class="text-white">${esc(tenantName)}</span></p>
+              <p class="text-sm text-gray-500">Lease ends: ${formatDate(lease.end_date)}</p>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button onclick="openPaymentModal('${lease.id}')" class="flex-1 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-sm transition-colors">Log Payment</button>
+              <button onclick="openMaintenanceModal('${u.id}')" class="flex-1 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-sm transition-colors">Maintenance</button>
+            </div>
+          </div>`;
+        } else {
+          return `<div class="glass rounded-xl p-5">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h4 class="font-semibold text-white text-lg">Unit ${esc(u.unit_number)}</h4>
+                <p class="text-sm text-gray-400">${u.bedrooms} bed, ${u.bathrooms} bath</p>
+              </div>
+              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(u.status)}">${esc(u.status)}</span>
+            </div>
+            <p class="text-emerald-400 font-medium">${formatCurrency(u.rent_amount, u.currency)}<span class="text-gray-500 text-sm font-normal">/month</span></p>
+            <div class="mt-3 pt-3 border-t border-gray-800">
+              <p class="text-sm text-gray-500">Vacant - ready for tenant</p>
+            </div>
+            <div class="mt-3">
+              <button onclick="openLeaseModal(null, '${u.id}')" class="w-full px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm transition-colors">Create Lease</button>
+            </div>
+          </div>`;
+        }
       }).join('');
     }
 
@@ -869,24 +885,25 @@
       tbody.innerHTML = AppState.tenants.map(function(t) {
         const lease = t.leases && t.leases[0] ? t.leases[0] : null;
         const unitInfo = lease ? esc(lease.units && lease.units.properties && lease.units.properties.name ? lease.units.properties.name : '') + ' - Unit ' + esc(lease.units && lease.units.unit_number ? lease.units.unit_number : '') : 'Not assigned';
-        return '<tr class="hover:bg-gray-800/30 transition-colors">' +
-          '<td class="px-4 py-3">' +
-            '<p class="font-medium text-white">' + esc(t.full_name) + '</p>' +
-            '<p class="text-sm text-gray-500">' + esc(t.id_number || '') + '</p>' +
-          '</td>' +
-          '<td class="px-4 py-3">' +
-            '<p class="text-sm text-gray-300">' + esc(t.phone) + '</p>' +
-            '<p class="text-sm text-gray-500">' + esc(t.email || '') + '</p>' +
-          '</td>' +
-          '<td class="px-4 py-3 text-sm text-gray-300">' + unitInfo + '</td>' +
-          '<td class="px-4 py-3">' +
-            '<span class="px-2 py-1 rounded-full text-xs font-medium ' + getStatusBadge(lease && lease.status ? lease.status : 'vacant') + '">' + esc(lease && lease.status ? lease.status : 'no lease') + '</span>' +
-          '</td>' +
-          '<td class="px-4 py-3 text-right">' +
-            (t.id_document_url ? '<a href="#" onclick="viewIdDocument('' + t.id_document_url + ''); return false;" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">View ID</a>' : '') +
-            '<button onclick="openTenantModal('' + t.id + '')" class="text-sm text-blue-400 hover:text-blue-300">Edit</button>' +
-          '</td>' +
-        '</tr>';
+        const status = lease && lease.status ? lease.status : 'no lease';
+        return `<tr class="hover:bg-gray-800/30 transition-colors">
+          <td class="px-4 py-3">
+            <p class="font-medium text-white">${esc(t.full_name)}</p>
+            <p class="text-sm text-gray-500">${esc(t.id_number || '')}</p>
+          </td>
+          <td class="px-4 py-3">
+            <p class="text-sm text-gray-300">${esc(t.phone)}</p>
+            <p class="text-sm text-gray-500">${esc(t.email || '')}</p>
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-300">${unitInfo}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(lease && lease.status ? lease.status : 'vacant')}">${esc(status)}</span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            ${t.id_document_url ? `<a href="#" onclick="viewIdDocument('${t.id_document_url}'); return false;" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">View ID</a>` : ''}
+            <button onclick="openTenantModal('${t.id}')" class="text-sm text-blue-400 hover:text-blue-300">Edit</button>
+          </td>
+        </tr>`;
       }).join('');
     }
 
@@ -905,24 +922,28 @@
         return;
       }
       tbody.innerHTML = AppState.leases.map(function(l) {
-        return '<tr class="hover:bg-gray-800/30 transition-colors">' +
-          '<td class="px-4 py-3">' +
-            '<p class="font-medium text-white">' + esc(l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown') + '</p>' +
-            '<p class="text-sm text-gray-500">' + esc(l.tenants && l.tenants.phone ? l.tenants.phone : '') + '</p>' +
-          '</td>' +
-          '<td class="px-4 py-3 text-sm text-gray-300">' +
-            esc(l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '') + '<br><span class="text-gray-500">Unit ' + esc(l.units && l.units.unit_number ? l.units.unit_number : '') + '</span>' +
-          '</td>' +
-          '<td class="px-4 py-3 text-sm text-emerald-400 font-medium">' + formatCurrency(l.rent_amount, l.currency) + '</td>' +
-          '<td class="px-4 py-3 text-sm text-gray-300">' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + '</td>' +
-          '<td class="px-4 py-3">' +
-            '<span class="px-2 py-1 rounded-full text-xs font-medium ' + getStatusBadge(l.status) + '">' + esc(l.status) + '</span>' +
-          '</td>' +
-          '<td class="px-4 py-3 text-right">' +
-            (l.lease_document_url ? '<a href="#" onclick="viewLeaseDocument('' + l.lease_document_url + ''); return false;" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">View Doc</a>' : '') +
-            '<button onclick="terminateLease('' + l.id + '')" class="text-sm ' + (l.status === 'active' ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed') + '">' + (l.status === 'active' ? 'Terminate' : 'Ended') + '</button>' +
-          '</td>' +
-        '</tr>';
+        const tenantName = l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown';
+        const tenantPhone = l.tenants && l.tenants.phone ? l.tenants.phone : '';
+        const propName = l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '';
+        const unitNum = l.units && l.units.unit_number ? l.units.unit_number : '';
+        return `<tr class="hover:bg-gray-800/30 transition-colors">
+          <td class="px-4 py-3">
+            <p class="font-medium text-white">${esc(tenantName)}</p>
+            <p class="text-sm text-gray-500">${esc(tenantPhone)}</p>
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-300">
+            ${esc(propName)}<br><span class="text-gray-500">Unit ${esc(unitNum)}</span>
+          </td>
+          <td class="px-4 py-3 text-sm text-emerald-400 font-medium">${formatCurrency(l.rent_amount, l.currency)}</td>
+          <td class="px-4 py-3 text-sm text-gray-300">${formatDate(l.start_date)} - ${formatDate(l.end_date)}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(l.status)}">${esc(l.status)}</span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            ${l.lease_document_url ? `<a href="#" onclick="viewLeaseDocument('${l.lease_document_url}'); return false;" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">View Doc</a>` : ''}
+            <button onclick="terminateLease('${l.id}')" class="text-sm ${l.status === 'active' ? 'text-red-400 hover:text-red-300' : 'text-gray-500 cursor-not-allowed'}">${l.status === 'active' ? 'Terminate' : 'Ended'}</button>
+          </td>
+        </tr>`;
       }).join('');
     }
 
@@ -941,20 +962,21 @@
         return;
       }
       tbody.innerHTML = AppState.payments.map(function(p) {
-        return '<tr class="hover:bg-gray-800/30 transition-colors">' +
-          '<td class="px-4 py-3 font-mono text-sm text-gray-300">' + esc(p.receipt_number || '-') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-white">' + esc(p.leases && p.leases.tenants && p.leases.tenants.full_name ? p.leases.tenants.full_name : 'Unknown') + '</td>' +
-          '<td class="px-4 py-3 text-sm font-medium text-emerald-400">' + formatCurrency(p.amount, 'USD') + '</td>' +
-          '<td class="px-4 py-3 text-sm text-gray-300">' + formatDate(p.payment_date) + '</td>' +
-          '<td class="px-4 py-3 text-sm text-gray-400 capitalize">' + esc(p.payment_method || 'cash') + '</td>' +
-          '<td class="px-4 py-3">' +
-            '<span class="px-2 py-1 rounded-full text-xs font-medium ' + getStatusBadge(p.status) + '">' + esc(p.status) + '</span>' +
-          '</td>' +
-          '<td class="px-4 py-3 text-right">' +
-            '<button onclick="downloadReceipt('' + p.id + '')" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">Receipt</button>' +
-            (p.receipt_url ? '<a href="' + p.receipt_url + '" target="_blank" class="text-sm text-blue-400 hover:text-blue-300 mr-3">PDF</a>' : '') +
-          '</td>' +
-        '</tr>';
+        const tenantName = p.leases && p.leases.tenants && p.leases.tenants.full_name ? p.leases.tenants.full_name : 'Unknown';
+        return `<tr class="hover:bg-gray-800/30 transition-colors">
+          <td class="px-4 py-3 font-mono text-sm text-gray-300">${esc(p.receipt_number || '-')}</td>
+          <td class="px-4 py-3 text-sm text-white">${esc(tenantName)}</td>
+          <td class="px-4 py-3 text-sm font-medium text-emerald-400">${formatCurrency(p.amount, 'USD')}</td>
+          <td class="px-4 py-3 text-sm text-gray-300">${formatDate(p.payment_date)}</td>
+          <td class="px-4 py-3 text-sm text-gray-400 capitalize">${esc(p.payment_method || 'cash')}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(p.status)}">${esc(p.status)}</span>
+          </td>
+          <td class="px-4 py-3 text-right">
+            <button onclick="downloadReceipt('${p.id}')" class="text-sm text-emerald-400 hover:text-emerald-300 mr-3">Receipt</button>
+            ${p.receipt_url ? `<a href="${p.receipt_url}" target="_blank" class="text-sm text-blue-400 hover:text-blue-300 mr-3">PDF</a>` : ''}
+          </td>
+        </tr>`;
       }).join('');
     }
 
@@ -973,751 +995,34 @@
         return;
       }
       container.innerHTML = AppState.maintenance.map(function(m) {
-        return '<div class="glass rounded-xl p-5">' +
-          '<div class="flex items-start justify-between mb-3">' +
-            '<div>' +
-              '<h4 class="font-semibold text-white">' + esc(m.title) + '</h4>' +
-              '<p class="text-sm text-gray-400">' + esc(m.units && m.units.properties && m.units.properties.name ? m.units.properties.name : '') + ' - Unit ' + esc(m.units && m.units.unit_number ? m.units.unit_number : '') + '</p>' +
-              (m.tenants ? '<p class="text-sm text-gray-500">Reported by: ' + esc(m.tenants.full_name) + '</p>' : '') +
-            '</div>' +
-            '<div class="flex gap-2">' +
-              '<span class="px-2 py-1 rounded-full text-xs font-medium ' + getStatusBadge(m.priority) + '">' + esc(m.priority) + '</span>' +
-              '<span class="px-2 py-1 rounded-full text-xs font-medium ' + getStatusBadge(m.status) + '">' + esc(m.status) + '</span>' +
-            '</div>' +
-          '</div>' +
-          '<p class="text-sm text-gray-300 mb-3">' + esc(m.description || '') + '</p>' +
-          (m.photo_urls && m.photo_urls.length ? '<div class="flex gap-2 mb-3">' + m.photo_urls.map(function(url) { return '<img src="' + url + '" class="w-16 h-16 object-cover rounded-lg border border-gray-700">'; }).join('') + '</div>' : '') +
-          '<div class="flex items-center justify-between pt-3 border-t border-gray-800">' +
-            '<span class="text-xs text-gray-500">' + formatDate(m.created_at) + '</span>' +
-            '<div class="flex gap-2">' +
-              (m.status !== 'resolved' && m.status !== 'closed' ? 
-                '<button onclick="updateMaintenanceStatus('' + m.id + '', 'in_progress')" class="px-3 py-1 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded text-sm transition-colors">In Progress</button>' +
-                '<button onclick="updateMaintenanceStatus('' + m.id + '', 'resolved')" class="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded text-sm transition-colors">Resolve</button>'
-               : '') +
-              (m.status === 'resolved' ? '<button onclick="updateMaintenanceStatus('' + m.id + '', 'closed')" class="px-3 py-1 bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 rounded text-sm transition-colors">Close</button>' : '') +
-            '</div>' +
-          '</div>' +
-          (m.resolution_notes ? '<p class="text-xs text-gray-500 mt-2">Resolution: ' + esc(m.resolution_notes) + '</p>' : '') +
-        '</div>';
+        const propName = m.units && m.units.properties && m.units.properties.name ? m.units.properties.name : '';
+        const unitNum = m.units && m.units.unit_number ? m.units.unit_number : '';
+        const tenantName = m.tenants && m.tenants.full_name ? m.tenants.full_name : '';
+        const photosHtml = m.photo_urls && m.photo_urls.length ? '<div class="flex gap-2 mb-3">' + m.photo_urls.map(function(url) { return `<img src="${url}" class="w-16 h-16 object-cover rounded-lg border border-gray-700">`; }).join('') + '</div>' : '';
+        const actionButtons = m.status !== 'resolved' && m.status !== 'closed' ? 
+          `<button onclick="updateMaintenanceStatus('${m.id}', 'in_progress')" class="px-3 py-1 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded text-sm transition-colors">In Progress</button>
+          <button onclick="updateMaintenanceStatus('${m.id}', 'resolved')" class="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded text-sm transition-colors">Resolve</button>` : 
+          (m.status === 'resolved' ? `<button onclick="updateMaintenanceStatus('${m.id}', 'closed')" class="px-3 py-1 bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 rounded text-sm transition-colors">Close</button>` : '');
+        const resolutionHtml = m.resolution_notes ? `<p class="text-xs text-gray-500 mt-2">Resolution: ${esc(m.resolution_notes)}</p>` : '';
+        return `<div class="glass rounded-xl p-5">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h4 class="font-semibold text-white">${esc(m.title)}</h4>
+              <p class="text-sm text-gray-400">${esc(propName)} - Unit ${esc(unitNum)}</p>
+              ${tenantName ? `<p class="text-sm text-gray-500">Reported by: ${esc(tenantName)}</p>` : ''}
+            </div>
+            <div class="flex gap-2">
+              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(m.priority)}">${esc(m.priority)}</span>
+              <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(m.status)}">${esc(m.status)}</span>
+            </div>
+          </div>
+          <p class="text-sm text-gray-300 mb-3">${esc(m.description || '')}</p>
+          ${photosHtml}
+          <div class="flex items-center justify-between pt-3 border-t border-gray-800">
+            <span class="text-xs text-gray-500">${formatDate(m.created_at)}</span>
+            <div class="flex gap-2">${actionButtons}</div>
+          </div>
+          ${resolutionHtml}
+        </div>`;
       }).join('');
     }
-
-    // ==================== REPORTS ====================
-    async function loadReports() {
-      if (!AppState.user) return;
-      const uid = AppState.user.id;
-
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      const { data: paymentsData } = await supabaseClient.from('payments').select('amount, payment_date, leases!inner(units!inner(properties!inner(landlord_id)))').eq('leases.units.properties.landlord_id', uid).gte('payment_date', sixMonthsAgo.toISOString().split('T')[0]).eq('status', 'paid');
-
-      const months = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date();
-        d.setMonth(d.getMonth() - i);
-        months.push({ label: d.toLocaleString('default', { month: 'short' }), year: d.getFullYear(), amount: 0 });
-      }
-      if (paymentsData) {
-        paymentsData.forEach(function(p) {
-          const pDate = new Date(p.payment_date);
-          const mIdx = months.findIndex(function(m, idx) {
-            const now = new Date();
-            now.setMonth(now.getMonth() - (5 - idx));
-            return pDate.getMonth() === now.getMonth() && pDate.getFullYear() === now.getFullYear();
-          });
-          if (mIdx >= 0) months[mIdx].amount += parseFloat(p.amount) || 0;
-        });
-      }
-      const maxAmount = Math.max.apply(Math, months.map(function(m) { return m.amount; }).concat([1]));
-      $('income-chart').innerHTML = months.map(function(m) {
-        const height = m.amount > 0 ? (m.amount / maxAmount) * 100 : 0;
-        return '<div class="flex flex-col items-center flex-1 min-w-0">' +
-          '<div class="w-full bg-gray-800 rounded-t-lg relative overflow-hidden" style="height: 200px;">' +
-            '<div class="absolute bottom-0 w-full bg-emerald-500 transition-all duration-500 rounded-t-lg" style="height: ' + height + '%"></div>' +
-          '</div>' +
-          '<p class="text-xs text-gray-400 mt-2 truncate w-full text-center">' + m.label + '</p>' +
-          '<p class="text-xs font-medium text-emerald-400 truncate w-full text-center">' + formatCurrency(m.amount, 'USD') + '</p>' +
-        '</div>';
-      }).join('');
-
-      const today = new Date().toISOString().split('T')[0];
-      const { data: overduePayments } = await supabaseClient.from('payments').select('amount, due_date, leases(tenants(full_name), units(unit_number, properties(name)))').eq('leases.units.properties.landlord_id', uid).eq('status', 'overdue').order('due_date', { ascending: true });
-
-      const arrearsList = $('arrears-list');
-      if (overduePayments && overduePayments.length) {
-        arrearsList.innerHTML = overduePayments.map(function(p) {
-          const days = Math.ceil((new Date() - new Date(p.due_date)) / (1000 * 60 * 60 * 24));
-          return '<tr class="hover:bg-gray-800/30">' +
-            '<td class="py-2 text-sm text-white">' + esc(p.leases && p.leases.tenants && p.leases.tenants.full_name ? p.leases.tenants.full_name : 'Unknown') + '</td>' +
-            '<td class="py-2 text-sm text-gray-400">' + esc(p.leases && p.leases.units && p.leases.units.properties && p.leases.units.properties.name ? p.leases.units.properties.name : '') + ' - ' + esc(p.leases && p.leases.units && p.leases.units.unit_number ? p.leases.units.unit_number : '') + '</td>' +
-            '<td class="py-2 text-sm text-red-400 text-right font-medium">' + formatCurrency(p.amount, 'USD') + '</td>' +
-            '<td class="py-2 text-sm text-red-400 text-right">' + days + 'd</td>' +
-          '</tr>';
-        }).join('');
-      } else {
-        arrearsList.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-gray-500">No arrears found</td></tr>';
-      }
-
-      const ninetyDays = new Date();
-      ninetyDays.setDate(ninetyDays.getDate() + 90);
-      const { data: expiringLeases } = await supabaseClient.from('leases').select('*, tenants(full_name), units(unit_number, properties(name))').eq('status', 'active').lte('end_date', ninetyDays.toISOString().split('T')[0]).gte('end_date', today).order('end_date', { ascending: true });
-
-      const expiryList = $('reports-expiry-list');
-      if (expiringLeases && expiringLeases.length) {
-        expiryList.innerHTML = expiringLeases.map(function(l) {
-          return '<tr class="hover:bg-gray-800/30">' +
-            '<td class="py-2 text-sm text-white">' + esc(l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown') + '</td>' +
-            '<td class="py-2 text-sm text-gray-400">' + esc(l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '') + ' - ' + esc(l.units && l.units.unit_number ? l.units.unit_number : '') + '</td>' +
-            '<td class="py-2 text-sm text-yellow-400 text-right">' + formatDate(l.end_date) + '</td>' +
-          '</tr>';
-        }).join('');
-      } else {
-        expiryList.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-gray-500">No upcoming expiries</td></tr>';
-      }
-    }
-
-    // ==================== SETTINGS ====================
-    async function loadSettings() {
-      if (!AppState.profile) return;
-      $('set-name').value = AppState.profile.full_name || '';
-      $('set-phone').value = AppState.profile.phone || '';
-      $('set-business').value = AppState.profile.business_name || '';
-      $('set-country').value = AppState.profile.country || 'Zimbabwe';
-      $('set-telegram-chat').value = AppState.profile.telegram_chat_id || '';
-      $('set-telegram-enabled').checked = AppState.profile.telegram_bot_enabled || false;
-    }
-    async function handleSettingsSave(e) {
-      e.preventDefault();
-      if (!AppState.user) return;
-      const updates = {
-        full_name: $('set-name').value,
-        phone: $('set-phone').value,
-        business_name: $('set-business').value,
-        country: $('set-country').value,
-        telegram_chat_id: $('set-telegram-chat').value,
-        telegram_bot_enabled: $('set-telegram-enabled').checked
-      };
-      const { error } = await supabaseClient.from('profiles').update(updates).eq('id', AppState.user.id);
-      if (error) return showToast('Error saving settings', 'error');
-      AppState.profile = Object.assign({}, AppState.profile, updates);
-      showToast('Settings saved successfully');
-    }
-
-    // ==================== MODAL SYSTEM ====================
-    function openModal(title, contentHtml, onSubmit) {
-      $('modal-overlay').classList.remove('hidden');
-      $('modal-overlay').classList.add('flex');
-      $('modal-content').innerHTML = '<div class="p-6 border-b border-gray-800 flex justify-between items-center sticky top-0 bg-gray-900 z-10">' +
-        '<h3 class="text-xl font-bold text-white">' + esc(title) + '</h3>' +
-        '<button onclick="closeModal()" class="text-gray-400 hover:text-white transition-colors">' +
-          '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
-        '</button>' +
-      '</div>' +
-      '<div class="p-6">' + contentHtml + '</div>';
-      if (onSubmit) {
-        const form = $('modal-content').querySelector('form');
-        if (form) form.addEventListener('submit', onSubmit);
-      }
-    }
-    function closeModal() {
-      $('modal-overlay').classList.add('hidden');
-      $('modal-overlay').classList.remove('flex');
-      $('modal-content').innerHTML = '';
-    }
-    $('modal-overlay').addEventListener('click', function(e) {
-      if (e.target === $('modal-overlay')) closeModal();
-    });
-
-    // ==================== PROPERTY FORM ====================
-    function openPropertyModal() {
-      openModal('Add Property', '<form id="property-form" class="space-y-4">' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Property Name *</label>' +
-          '<input type="text" id="prop-name" required class="w-full px-4 py-2 rounded-lg">' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Address *</label>' +
-          '<input type="text" id="prop-address" required class="w-full px-4 py-2 rounded-lg">' +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">City *</label>' +
-            '<input type="text" id="prop-city" required class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Country</label>' +
-            '<select id="prop-country" class="w-full px-4 py-2 rounded-lg">' +
-              '<option value="Zimbabwe">Zimbabwe</option>' +
-              '<option value="South Africa">South Africa</option>' +
-              '<option value="Kenya">Kenya</option>' +
-              '<option value="Zambia">Zambia</option>' +
-              '<option value="Nigeria">Nigeria</option>' +
-            '</select>' +
-          '</div>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Property Type</label>' +
-          '<select id="prop-type" class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="residential">Residential</option>' +
-            '<option value="commercial">Commercial</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="pt-4">' +
-          '<button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">Save Property</button>' +
-        '</div>' +
-      '</form>', handlePropertySave);
-    }
-    async function handlePropertySave(e) {
-      e.preventDefault();
-      if (!AppState.user) return;
-      const { error } = await supabaseClient.from('properties').insert({
-        landlord_id: AppState.user.id,
-        name: $('prop-name').value,
-        address: $('prop-address').value,
-        city: $('prop-city').value,
-        country: $('prop-country').value,
-        property_type: $('prop-type').value
-      });
-      if (error) return showToast(error.message, 'error');
-      closeModal();
-      showToast('Property added successfully');
-      loadProperties();
-    }
-
-    // ==================== UNIT FORM ====================
-    function openUnitModal() {
-      if (!AppState.currentProperty) return;
-      openModal('Add Unit', '<form id="unit-form" class="space-y-4">' +
-        '<input type="hidden" id="unit-property-id" value="' + AppState.currentProperty.id + '">' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Unit Number *</label>' +
-          '<input type="text" id="unit-number" required class="w-full px-4 py-2 rounded-lg" placeholder="e.g. 101, A1, Suite 5">' +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Bedrooms</label>' +
-            '<input type="number" id="unit-bedrooms" min="0" value="1" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Bathrooms</label>' +
-            '<input type="number" id="unit-bathrooms" min="0" value="1" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Monthly Rent *</label>' +
-            '<input type="number" id="unit-rent" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Currency</label>' +
-            '<select id="unit-currency" class="w-full px-4 py-2 rounded-lg">' +
-              '<option value="USD">USD</option>' +
-              '<option value="ZAR">ZAR</option>' +
-              '<option value="KES">KES</option>' +
-              '<option value="ZMW">ZMW</option>' +
-              '<option value="NGN">NGN</option>' +
-            '</select>' +
-          '</div>' +
-        '</div>' +
-        '<div class="pt-4">' +
-          '<button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">Save Unit</button>' +
-        '</div>' +
-      '</form>', handleUnitSave);
-    }
-    async function handleUnitSave(e) {
-      e.preventDefault();
-      const { error } = await supabaseClient.from('units').insert({
-        property_id: $('unit-property-id').value,
-        unit_number: $('unit-number').value,
-        bedrooms: parseInt($('unit-bedrooms').value) || 1,
-        bathrooms: parseInt($('unit-bathrooms').value) || 1,
-        rent_amount: parseFloat($('unit-rent').value) || 0,
-        currency: $('unit-currency').value,
-        status: 'vacant'
-      });
-      if (error) return showToast(error.message, 'error');
-      closeModal();
-      showToast('Unit added successfully');
-      loadUnitsForProperty(AppState.currentProperty.id);
-    }
-
-    // ==================== TENANT FORM ====================
-    function openTenantModal(tenantId) {
-      tenantId = tenantId || null;
-      const tenant = tenantId ? AppState.tenants.find(function(t) { return t.id === tenantId; }) : null;
-      openModal(tenant ? 'Edit Tenant' : 'Add Tenant', '<form id="tenant-form" class="space-y-4">' +
-        '<input type="hidden" id="tenant-id" value="' + (tenant ? tenant.id : '') + '">' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Full Name *</label>' +
-          '<input type="text" id="tenant-name" required value="' + (tenant ? esc(tenant.full_name) : '') + '" class="w-full px-4 py-2 rounded-lg">' +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Phone *</label>' +
-            '<input type="tel" id="tenant-phone" required value="' + (tenant ? esc(tenant.phone) : '') + '" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Email</label>' +
-            '<input type="email" id="tenant-email" value="' + (tenant ? esc(tenant.email || '') : '') + '" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">ID Number</label>' +
-          '<input type="text" id="tenant-id-number" value="' + (tenant ? esc(tenant.id_number || '') : '') + '" class="w-full px-4 py-2 rounded-lg">' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">ID Document</label>' +
-          '<input type="file" id="tenant-id-file" accept="image/*,.pdf" class="w-full px-4 py-2 rounded-lg text-sm">' +
-          (tenant && tenant.id_document_url ? '<p class="text-xs text-emerald-400 mt-1">Document already uploaded</p>' : '') +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Emergency Contact</label>' +
-            '<input type="text" id="tenant-emergency-name" value="' + (tenant ? esc(tenant.emergency_contact_name || '') : '') + '" class="w-full px-4 py-2 rounded-lg" placeholder="Name">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Emergency Phone</label>' +
-            '<input type="tel" id="tenant-emergency-phone" value="' + (tenant ? esc(tenant.emergency_contact_phone || '') : '') + '" class="w-full px-4 py-2 rounded-lg" placeholder="Phone">' +
-          '</div>' +
-        '</div>' +
-        '<div class="pt-4">' +
-          '<button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">' + (tenant ? 'Update Tenant' : 'Save Tenant') + '</button>' +
-        '</div>' +
-      '</form>', handleTenantSave);
-    }
-    async function handleTenantSave(e) {
-      e.preventDefault();
-      const tenantId = $('tenant-id').value;
-      const payload = {
-        landlord_id: AppState.user.id,
-        full_name: $('tenant-name').value,
-        phone: $('tenant-phone').value,
-        email: $('tenant-email').value || null,
-        id_number: $('tenant-id-number').value || null,
-        emergency_contact_name: $('tenant-emergency-name').value || null,
-        emergency_contact_phone: $('tenant-emergency-phone').value || null
-      };
-      const file = $('tenant-id-file').files[0];
-      if (file) {
-        const path = AppState.user.id + '/' + Date.now() + '_' + file.name;
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('id-documents').upload(path, file);
-        if (uploadError) return showToast('Upload failed: ' + uploadError.message, 'error');
-        payload.id_document_url = uploadData.path;
-      }
-      let error;
-      if (tenantId) {
-        const { error: e } = await supabaseClient.from('tenants').update(payload).eq('id', tenantId);
-        error = e;
-      } else {
-        const { error: e } = await supabaseClient.from('tenants').insert(payload);
-        error = e;
-      }
-      if (error) return showToast(error.message, 'error');
-      closeModal();
-      showToast(tenantId ? 'Tenant updated' : 'Tenant added successfully');
-      loadTenants();
-    }
-
-    // ==================== LEASE FORM ====================
-    async function openLeaseModal(leaseId, preselectedUnitId) {
-      leaseId = leaseId || null;
-      preselectedUnitId = preselectedUnitId || null;
-      const { data: vacantUnits } = await supabaseClient.from('units').select('*, properties(name)').eq('status', 'vacant').eq('properties.landlord_id', AppState.user.id);
-      const { data: allTenants } = await supabaseClient.from('tenants').select('id, full_name').eq('landlord_id', AppState.user.id).order('full_name');
-
-      const unitOptions = (vacantUnits || []).map(function(u) {
-        return '<option value="' + u.id + '" data-rent="' + u.rent_amount + '" data-currency="' + u.currency + '">' + esc(u.properties.name) + ' - Unit ' + esc(u.unit_number) + ' (' + formatCurrency(u.rent_amount, u.currency) + ')</option>';
-      }).join('');
-      const tenantOptions = (allTenants || []).map(function(t) {
-        return '<option value="' + t.id + '">' + esc(t.full_name) + '</option>';
-      }).join('');
-
-      openModal('Create Lease', '<form id="lease-form" class="space-y-4">' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Unit *</label>' +
-          '<select id="lease-unit" required class="w-full px-4 py-2 rounded-lg" onchange="updateLeaseRent()">' +
-            '<option value="">Select a vacant unit...</option>' +
-            unitOptions +
-          '</select>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Tenant *</label>' +
-          '<select id="lease-tenant" required class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="">Select a tenant...</option>' +
-            tenantOptions +
-          '</select>' +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Start Date *</label>' +
-            '<input type="date" id="lease-start" required class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">End Date *</label>' +
-            '<input type="date" id="lease-end" required class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Monthly Rent *</label>' +
-            '<input type="number" id="lease-rent" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Deposit Amount</label>' +
-            '<input type="number" id="lease-deposit" min="0" step="0.01" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Currency</label>' +
-          '<select id="lease-currency" class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="USD">USD</option>' +
-            '<option value="ZAR">ZAR</option>' +
-            '<option value="KES">KES</option>' +
-            '<option value="ZMW">ZMW</option>' +
-            '<option value="NGN">NGN</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="flex items-center gap-2">' +
-          '<input type="checkbox" id="lease-deposit-paid" class="w-4 h-4 rounded accent-emerald-500">' +
-          '<label class="text-sm text-gray-300">Deposit Paid</label>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Lease Document</label>' +
-          '<input type="file" id="lease-doc" accept=".pdf,.doc,.docx" class="w-full px-4 py-2 rounded-lg text-sm">' +
-        '</div>' +
-        '<div class="pt-4">' +
-          '<button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">Create Lease</button>' +
-        '</div>' +
-      '</form>', handleLeaseSave);
-
-      if (preselectedUnitId) {
-        const select = $('lease-unit');
-        select.value = preselectedUnitId;
-        updateLeaseRent();
-      }
-    }
-    function updateLeaseRent() {
-      const select = $('lease-unit');
-      const option = select.options[select.selectedIndex];
-      if (option && option.dataset.rent) {
-        $('lease-rent').value = option.dataset.rent;
-        $('lease-currency').value = option.dataset.currency || 'USD';
-      }
-    }
-    async function handleLeaseSave(e) {
-      e.preventDefault();
-      const unitId = $('lease-unit').value;
-      const tenantId = $('lease-tenant').value;
-      const rentAmount = parseFloat($('lease-rent').value) || 0;
-      const depositAmount = parseFloat($('lease-deposit').value) || 0;
-
-      let docUrl = null;
-      const file = $('lease-doc').files[0];
-      if (file) {
-        const path = AppState.user.id + '/' + Date.now() + '_' + file.name;
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('lease-documents').upload(path, file);
-        if (uploadError) return showToast('Upload failed: ' + uploadError.message, 'error');
-        docUrl = uploadData.path;
-      }
-
-      const { error: leaseError } = await supabaseClient.from('leases').insert({
-        unit_id: unitId,
-        tenant_id: tenantId,
-        start_date: $('lease-start').value,
-        end_date: $('lease-end').value,
-        rent_amount: rentAmount,
-        deposit_amount: depositAmount,
-        deposit_paid: $('lease-deposit-paid').checked,
-        currency: $('lease-currency').value,
-        lease_document_url: docUrl,
-        status: 'active'
-      });
-      if (leaseError) return showToast(leaseError.message, 'error');
-
-      const { error: unitError } = await supabaseClient.from('units').update({ status: 'occupied' }).eq('id', unitId);
-      if (unitError) return showToast(unitError.message, 'error');
-
-      closeModal();
-      showToast('Lease created successfully');
-      loadLeases();
-      if (AppState.currentProperty) loadUnitsForProperty(AppState.currentProperty.id);
-    }
-    async function terminateLease(leaseId) {
-      if (!confirm('Are you sure you want to terminate this lease?')) return;
-      const lease = AppState.leases.find(function(l) { return l.id === leaseId; });
-      const { error } = await supabaseClient.from('leases').update({ status: 'terminated' }).eq('id', leaseId);
-      if (error) return showToast(error.message, 'error');
-      if (lease) {
-        await supabaseClient.from('units').update({ status: 'vacant' }).eq('id', lease.unit_id);
-      }
-      showToast('Lease terminated');
-      loadLeases();
-      if (AppState.currentProperty) loadUnitsForProperty(AppState.currentProperty.id);
-    }
-
-    // ==================== PAYMENT FORM ====================
-    async function openPaymentModal(preselectedLeaseId) {
-      preselectedLeaseId = preselectedLeaseId || null;
-      const { data: activeLeases } = await supabaseClient.from('leases').select('id, rent_amount, tenants(full_name), units(unit_number, properties(name))').eq('status', 'active').eq('units.properties.landlord_id', AppState.user.id);
-
-      const leaseOptions = (activeLeases || []).map(function(l) {
-        return '<option value="' + l.id + '" data-rent="' + l.rent_amount + '">' + esc(l.tenants && l.tenants.full_name ? l.tenants.full_name : 'Unknown') + ' - ' + esc(l.units && l.units.properties && l.units.properties.name ? l.units.properties.name : '') + ' Unit ' + esc(l.units && l.units.unit_number ? l.units.unit_number : '') + '</option>';
-      }).join('');
-
-      openModal('Log Payment', '<form id="payment-form" class="space-y-4">' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Lease / Tenant *</label>' +
-          '<select id="payment-lease" required class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="">Select lease...</option>' +
-            leaseOptions +
-          '</select>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Amount Paid *</label>' +
-          '<input type="number" id="payment-amount" required min="0" step="0.01" class="w-full px-4 py-2 rounded-lg">' +
-        '</div>' +
-        '<div class="grid grid-cols-2 gap-4">' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Payment Date *</label>' +
-            '<input type="date" id="payment-date" required class="w-full px-4 py-2 rounded-lg" value="' + new Date().toISOString().split('T')[0] + '">' +
-          '</div>' +
-          '<div>' +
-            '<label class="block text-sm font-medium text-gray-300 mb-1">Due Date</label>' +
-            '<input type="date" id="payment-due" class="w-full px-4 py-2 rounded-lg">' +
-          '</div>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Payment Method</label>' +
-          '<select id="payment-method" class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="cash">Cash</option>' +
-            '<option value="bank_transfer">Bank Transfer</option>' +
-            '<option value="mobile_money">Mobile Money</option>' +
-            '<option value="other">Other</option>' +
-          '</select>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Notes</label>' +
-          '<textarea id="payment-notes" rows="2" class="w-full px-4 py-2 rounded-lg"></textarea>' +
-        '</div>' +
-        '<div class="pt-4">' +
-          '<button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">Log Payment</button>' +
-        '</div>' +
-      '</form>', handlePaymentSave);
-
-      if (preselectedLeaseId) $('payment-lease').value = preselectedLeaseId;
-    }
-    async function handlePaymentSave(e) {
-      e.preventDefault();
-      const leaseId = $('payment-lease').value;
-      const amount = parseFloat($('payment-amount').value) || 0;
-      const { error } = await supabaseClient.from('payments').insert({
-        lease_id: leaseId,
-        amount: amount,
-        payment_date: $('payment-date').value,
-        due_date: $('payment-due').value || null,
-        payment_method: $('payment-method').value,
-        status: 'paid',
-        notes: $('payment-notes').value || null
-      });
-      if (error) return showToast(error.message, 'error');
-      closeModal();
-      showToast('Payment logged successfully');
-      loadPayments();
-      loadDashboard();
-    }
-
-    // ==================== MAINTENANCE FORM ====================
-    async function openMaintenanceModal(preselectedUnitId) {
-      preselectedUnitId = preselectedUnitId || null;
-      const { data: allUnits } = await supabaseClient.from('units').select('id, unit_number, properties(name)').eq('properties.landlord_id', AppState.user.id).order('unit_number');
-      const unitOptions = (allUnits || []).map(function(u) {
-        return '<option value="' + u.id + '">' + esc(u.properties.name) + ' - Unit ' + esc(u.unit_number) + '</option>';
-      }).join('');
-
-      const { data: allTenants } = await supabaseClient.from('tenants').select('id, full_name').eq('landlord_id', AppState.user.id).order('full_name');
-      const tenantOptions = (allTenants || []).map(function(t) {
-        return '<option value="' + t.id + '">' + esc(t.full_name) + '</option>';
-      }).join('');
-
-      openModal('New Maintenance Request', '<form id="maintenance-form" class="space-y-4">' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Unit *</label>' +
-          '<select id="maint-unit" required class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="">Select unit...</option>' +
-            unitOptions +
-          '</select>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Tenant (optional)</label>' +
-          '<select id="maint-tenant" class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="">Select tenant...</option>' +
-            tenantOptions +
-          '</select>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Title *</label>' +
-          '<input type="text" id="maint-title" required class="w-full px-4 py-2 rounded-lg" placeholder="e.g. Leaking faucet">' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Description</label>' +
-          '<textarea id="maint-desc" rows="3" class="w-full px-4 py-2 rounded-lg"></textarea>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Priority</label>' +
-          '<select id="maint-priority" class="w-full px-4 py-2 rounded-lg">' +
-            '<option value="low">Low</option>' +
-            '<option value="medium" selected>Medium</option>' +
-            '<option value="high">High</option>' +
-            '<option value="urgent">Urgent</option>' +
-          '</select>' +
-        '</div>' +
-        '<div>' +
-          '<label class="block text-sm font-medium text-gray-300 mb-1">Photos</label>' +
-          '<input type="file" id="maint-photos" multiple accept="image/*" class="w-full px-4 py-2 rounded-lg text-sm">' +
-        '</div>' +
-        '<div class="pt-4">' +
-          '<button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">Submit Request</button>' +
-        '</div>' +
-      '</form>', handleMaintenanceSave);
-
-      if (preselectedUnitId) $('maint-unit').value = preselectedUnitId;
-    }
-    async function handleMaintenanceSave(e) {
-      e.preventDefault();
-      const files = $('maint-photos').files;
-      const photoUrls = [];
-      for (let i = 0; i < files.length; i++) {
-        const path = AppState.user.id + '/' + Date.now() + '_' + files[i].name;
-        const { data, error } = await supabaseClient.storage.from('maintenance-photos').upload(path, files[i]);
-        if (error) { showToast('Photo upload failed: ' + error.message, 'error'); return; }
-        photoUrls.push(data.path);
-      }
-      const { error } = await supabaseClient.from('maintenance_requests').insert({
-        unit_id: $('maint-unit').value,
-        tenant_id: $('maint-tenant').value || null,
-        title: $('maint-title').value,
-        description: $('maint-desc').value || null,
-        priority: $('maint-priority').value,
-        photo_urls: photoUrls,
-        status: 'open'
-      });
-      if (error) return showToast(error.message, 'error');
-      closeModal();
-      showToast('Maintenance request submitted');
-      loadMaintenance();
-    }
-    async function updateMaintenanceStatus(id, status) {
-      const updates = { status: status };
-      if (status === 'resolved') {
-        updates.resolved_at = new Date().toISOString();
-        const notes = prompt('Add resolution notes (optional):');
-        if (notes) updates.resolution_notes = notes;
-      }
-      const { error } = await supabaseClient.from('maintenance_requests').update(updates).eq('id', id);
-      if (error) return showToast(error.message, 'error');
-      showToast('Status updated to ' + status);
-      loadMaintenance();
-    }
-
-    // ==================== PDF RECEIPT ====================
-    async function downloadReceipt(paymentId) {
-      const payment = AppState.payments.find(function(p) { return p.id === paymentId; });
-      if (!payment) return showToast('Payment not found', 'error');
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, 210, 35, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22);
-      doc.text('RentRadar', 14, 18);
-      doc.setFontSize(9);
-      doc.text('Property Management Solutions', 14, 26);
-      doc.setTextColor(16, 185, 129);
-      doc.text('OFFICIAL RECEIPT', 195, 18, { align: 'right' });
-
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(11);
-      doc.text('Receipt Number: ' + (payment.receipt_number || 'N/A'), 14, 45);
-      doc.text('Date: ' + formatDate(payment.payment_date), 14, 52);
-
-      doc.setFillColor(245, 245, 245);
-      doc.rect(14, 58, 80, 32, 'F');
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.text('FROM:', 16, 65);
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text(AppState.profile && AppState.profile.business_name ? AppState.profile.business_name : 'RentRadar Landlord', 16, 72);
-      doc.text(AppState.profile && AppState.profile.phone ? AppState.profile.phone : '', 16, 79);
-
-      doc.rect(110, 58, 80, 32, 'F');
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.text('TO:', 112, 65);
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text(payment.leases && payment.leases.tenants && payment.leases.tenants.full_name ? payment.leases.tenants.full_name : 'Tenant', 112, 72);
-      doc.text((payment.leases && payment.leases.units && payment.leases.units.properties && payment.leases.units.properties.name ? payment.leases.units.properties.name : '') + ' - Unit ' + (payment.leases && payment.leases.units && payment.leases.units.unit_number ? payment.leases.units.unit_number : ''), 112, 79);
-
-      doc.setFontSize(18);
-      doc.setTextColor(16, 185, 129);
-      doc.text('Amount Paid: ' + formatCurrency(payment.amount, 'USD'), 14, 100);
-
-      const details = [
-        ['Payment Method', (payment.payment_method || 'cash').replace('_', ' ').toUpperCase()],
-        ['Notes', payment.notes || '-'],
-        ['Lease Status', payment.leases && payment.leases.status ? payment.leases.status : 'active']
-      ];
-
-      if (doc.autoTable) {
-        doc.autoTable({
-          startY: 110,
-          head: [['Description', 'Value']],
-          body: details,
-          theme: 'grid',
-          headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
-          styles: { fontSize: 10, cellPadding: 5 },
-          columnStyles: { 0: { fontStyle: 'bold' } }
-        });
-      } else {
-        let y = 110;
-        details.forEach(function(item) {
-          doc.setFontSize(10);
-          doc.setTextColor(0, 0, 0);
-          doc.text(item[0] + ': ' + item[1], 14, y);
-          y += 10;
-        });
-      }
-
-      doc.setFontSize(10);
-      doc.setTextColor(128, 128, 128);
-      doc.text('Thank you for your payment.', 105, 280, { align: 'center' });
-      doc.text('Generated by RentRadar', 105, 286, { align: 'center' });
-
-      doc.save('RentRadar-Receipt-' + (payment.receipt_number || paymentId) + '.pdf');
-    }
-
-    // ==================== DOCUMENT VIEWERS ====================
-    async function viewIdDocument(path) {
-      const { data, error } = await supabaseClient.storage.from('id-documents').createSignedUrl(path, 60);
-      if (error) return showToast('Unable to load document', 'error');
-      window.open(data.signedUrl, '_blank');
-    }
-    async function viewLeaseDocument(path) {
-      const { data, error } = await supabaseClient.storage.from('lease-documents').createSignedUrl(path, 60);
-      if (error) return showToast('Unable to load document', 'error');
-      window.open(data.signedUrl, '_blank');
-    }
-
-    // ==================== EVENT LISTENERS ====================
-    document.addEventListener('DOMContentLoaded', function() {
-      $('login-form').addEventListener('submit', handleLogin);
-      $('register-form').addEventListener('submit', handleRegister);
-      $('settings-form').addEventListener('submit', handleSettingsSave);
-      initAuth();
-    });
-  </script>
-</body>
-</html>
