@@ -652,31 +652,34 @@
       if (error) return showToast(error.message, 'error');
       showToast('Welcome back!');
     }
-    async function handleRegister(e) {
-      e.preventDefault();
-      const email = $('reg-email').value;
-      const password = $('reg-password').value;
-      const fullName = $('reg-name').value;
-      const phone = $('reg-phone').value;
-      const businessName = $('reg-business').value;
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if (error) return showToast(error.message, 'error');
-      if (data.user) {
-        await supabaseClient.from('profiles').update({
-          full_name: fullName, phone, business_name: businessName, role: 'landlord'
-        }).eq('id', data.user.id);
-        showToast('Account created! Check your email to confirm.');
-        toggleAuthMode();
-      }
-    }
-    async function handleLogout() {
-      await supabaseClient.auth.signOut();
-      showToast('Logged out successfully');
-    }
-    function toggleAuthMode() {
-      $('login-form').classList.toggle('hidden');
-      $('register-form').classList.toggle('hidden');
-    }
+    async function handleLogin(e) {
+  e.preventDefault();
+  const email = $('login-email').value;
+  const password = $('login-password').value;
+  
+  console.log('Attempting login with:', email);
+  
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  
+  if (error) {
+    console.error('Login error:', error);
+    showToast(error.message, 'error');
+    return;
+  }
+  
+  if (data && data.user) {
+    console.log('Login successful:', data.user);
+    AppState.user = data.user;
+    await loadProfile();
+    $('page-login').classList.remove('active');
+    $('app-layout').classList.add('active');
+    showPage('dashboard');
+    showToast('Welcome back!');
+  } else {
+    console.error('No user data returned');
+    showToast('Login failed - no user data', 'error');
+  }
+}
 
     // ==================== DASHBOARD ====================
     async function loadDashboard() {
