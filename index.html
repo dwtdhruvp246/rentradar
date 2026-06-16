@@ -433,7 +433,7 @@ function viewProperty(pid) {
   const units = AppState.units.filter(u => u.property_id === pid);
   const html = '<h3>' + p.name + '</h3><p style="color:var(--muted);margin-bottom:16px">' + (p.address || '') + '<br>' + (p.type || '') + ' &bull; ' + (p.city || '') + ' ' + (p.country || '') + '</p>' +
     '<h4 style="margin-bottom:12px">Units (' + units.length + ')</h4>' +
-    (units.length ? units.map(u => '<div class="unit-row"><div><strong>Unit ' + u.unit_number + '</strong><br><span style="color:var(--muted);font-size:13px">' + (u.bedrooms || 0) + 'br / ' + (u.bathrooms || 0) + 'ba &bull; ' + (u.area || 0) + ' sqft</span></div><span class="badge ' + (u.status === 'occupied' ? 'badge-green' : 'badge-gray') + '">' + (u.status || 'unknown') + '</span></div>').join('') : '<p>No units in this property</p>') +
+    (units.length ? units.map(u => '<div class="unit-row"><div><strong>Unit ' + u.unit_number + '</strong><br><span style="color:var(--muted);font-size:13px">' + (u.bedrooms || 0) + 'br / ' + (u.bathrooms || 0) + 'ba</span></div><span class="badge ' + (u.status === 'occupied' ? 'badge-green' : 'badge-gray') + '">' + (u.status || 'unknown') + '</span></div>').join('') : '<p>No units in this property</p>') +
     '<div style="margin-top:20px;text-align:right"><button class="btn btn-primary" data-action="openModalUnit" data-pid="' + pid + '">+ Add Unit</button></div>';
   $('modal-body').innerHTML = html;
   $('modal-overlay').classList.add('active');
@@ -532,7 +532,6 @@ function openModal(type, propertyId, unitId, tenantId) {
       '<div class="form-group"><label>Type</label><select id="unit-type"><option>Studio</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option><option>Commercial</option></select></div>' +
       '<div class="form-group"><label>Bedrooms</label><input type="number" id="unit-beds" value="0"></div>' +
       '<div class="form-group"><label>Bathrooms</label><input type="number" id="unit-baths" value="0"></div>' +
-      '<div class="form-group"><label>Area (sqft)</label><input type="number" id="unit-area" value="0"></div>' +
       '<div class="form-group"><label>Rent Amount</label><input type="number" id="unit-rent" value="0"></div>' +
       '<div class="form-group"><label>Currency</label><input type="text" id="unit-currency" value="USD"></div>' +
       '<button type="submit" class="btn btn-accent">Save Unit</button></form>';
@@ -602,7 +601,6 @@ async function saveUnit(e, propId) {
       type: $('unit-type').value,
       bedrooms: parseInt($('unit-beds').value) || 0,
       bathrooms: parseInt($('unit-baths').value) || 0,
-      area: parseInt($('unit-area').value) || 0,
       rent_amount: parseFloat($('unit-rent').value) || 0,
       currency: $('unit-currency').value,
       status: 'vacant'
