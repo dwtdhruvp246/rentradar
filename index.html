@@ -35,14 +35,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .topbar h2{font-size:18px;color:var(--primary)}
 .topbar-user{display:flex;align-items:center;gap:12px}
 .menu-toggle{display:none;background:none;border:none;font-size:24px;color:var(--primary);cursor:pointer;padding:4px 8px;margin-right:8px}
-.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);min-height:calc(100vh - 57px);padding:16px 0;position:fixed;left:0;top:57px;z-index:100}
+.mobile-sidebar-wrapper{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;pointer-events:none}
+.mobile-sidebar-wrapper.mobile-open{pointer-events:auto}
+.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);padding:16px 0;position:absolute;left:0;top:57px;bottom:0;overflow-y:auto}
 .sidebar-item{padding:12px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--muted);border-left:3px solid transparent}
 .sidebar-item:hover{background:var(--bg);color:var(--text)}
 .sidebar-item.active{border-left-color:var(--accent);background:var(--bg);color:var(--text);font-weight:500}
 .main-content{margin-left:240px;padding:24px}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:95;touch-action:none}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;touch-action:none}
 .sidebar-overlay.active{display:block}
-@media (max-width:768px){.menu-toggle{display:inline-block}.sidebar{display:none;left:0}.sidebar.mobile-open{display:block}.main-content{margin-left:0}}
+@media (max-width:768px){.menu-toggle{display:inline-block}.mobile-sidebar-wrapper{left:-240px;transition:left .3s ease}.mobile-sidebar-wrapper.mobile-open{left:0}.sidebar{position:absolute;left:0;top:0;bottom:0;width:240px}.sidebar-overlay.active{display:block}.main-content{margin-left:0}}
 .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
@@ -143,6 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <button class="btn btn-danger" onclick="handleLogout()">Logout</button>
     </div>
   </div>
+    <div class="mobile-sidebar-wrapper" id="mobile-sidebar-wrapper">
     <div class="sidebar">
       <div class="sidebar-item active" onclick="showPage('dashboard')" data-page="dashboard">Dashboard</div>
       <div class="sidebar-item" onclick="showPage('properties')" data-page="properties">Properties</div>
@@ -321,16 +324,16 @@ async function handleLogout() {
 }
 
 function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
+  const wrapper = document.getElementById('mobile-sidebar-wrapper');
   const overlay = document.getElementById('sidebar-overlay');
-  if (!sidebar || !overlay) return;
-  const isOpen = sidebar.classList.contains('mobile-open');
+  if (!wrapper || !overlay) { showToast('Menu error', 'error'); return; }
+  const isOpen = wrapper.classList.contains('mobile-open');
   if (isOpen) {
-    sidebar.classList.remove('mobile-open');
+    wrapper.classList.remove('mobile-open');
     overlay.classList.remove('active');
     document.body.style.overflow = '';
   } else {
-    sidebar.classList.add('mobile-open');
+    wrapper.classList.add('mobile-open');
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
@@ -365,10 +368,10 @@ function showPage(page) {
   const sidebarItem = document.querySelector('.sidebar-item[data-page="' + page + '"]');
   if (sidebarItem) sidebarItem.classList.add('active');
   // Close mobile sidebar after navigation
-  const sidebar = document.querySelector('.sidebar');
+  const wrapper = document.getElementById('mobile-sidebar-wrapper');
   const overlay = document.getElementById('sidebar-overlay');
-  if (sidebar && sidebar.classList.contains('mobile-open')) {
-    sidebar.classList.remove('mobile-open');
+  if (wrapper && wrapper.classList.contains('mobile-open')) {
+    wrapper.classList.remove('mobile-open');
     if (overlay) overlay.classList.remove('active');
     document.body.style.overflow = '';
   }
@@ -557,7 +560,6 @@ function openModal(type, propertyId, unitId, tenantId) {
     html = '<h3>Add Unit</h3><form onsubmit="saveUnit(event,' + (propertyId ? "'" + propertyId + "'" : "null") + ')">' +
       '<div class="form-group"><label>Property</label><select id="unit-prop">' + AppState.properties.map(p => '<option value="' + p.id + '"' + (p.id === propertyId ? ' selected' : '') + '>' + p.name + '</option>').join('') + '</select></div>' +
       '<div class="form-group"><label>Unit Number</label><input type="text" id="unit-number" required></div>' +
-      '<div class="form-group"><label>Type</label><select id="unit-type"><option>Studio</option><option>1 Bedroom</option><option>2 Bedroom</option><option>3 Bedroom</option><option>Commercial</option></select></div>' +
       '<div class="form-group"><label>Bedrooms</label><input type="number" id="unit-beds" value="0"></div>' +
       '<div class="form-group"><label>Bathrooms</label><input type="number" id="unit-baths" value="0"></div>' +
       '<div class="form-group"><label>Rent Amount</label><input type="number" id="unit-rent" value="0"></div>' +
@@ -626,7 +628,6 @@ async function saveUnit(e, propId) {
     const { data, error } = await supabaseClient.from('units').insert({
       property_id: pid,
       unit_number: $('unit-number').value,
-      type: $('unit-type').value,
       bedrooms: parseInt($('unit-beds').value) || 0,
       bathrooms: parseInt($('unit-baths').value) || 0,
       rent_amount: parseFloat($('unit-rent').value) || 0,
