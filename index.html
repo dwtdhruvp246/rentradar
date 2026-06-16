@@ -274,7 +274,7 @@ async function handleLogin(e) {
       AppState.user = data.user;
       await loadProfile();
       enterApp();
-      showToast('Welcome back!');
+      showToast('Welcome back, ' + ($('user-name').textContent || '') + '!');
     } else {
       showToast('Login failed - no user returned', 'error');
     }
@@ -291,11 +291,21 @@ async function handleRegister(e) {
     const email = $('reg-email').value;
     const password = $('reg-password').value;
     const phone = $('reg-phone').value;
-    const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: name, phone: phone } } });
+    const { data, error } = await supabaseClient.auth.signUp({ 
+      email, 
+      password, 
+      options: { data: { full_name: name, phone: phone } } 
+    });
     if (error) { showToast(error.message, 'error'); return; }
     if (data && data.user) {
       AppState.user = data.user;
-      await supabaseClient.from('profiles').insert({ id: data.user.id, full_name: name, phone: phone, email: email });
+      // Upsert profile (in case Supabase auth trigger already created one)
+      await supabaseClient.from('profiles').upsert({ 
+        id: data.user.id, 
+        full_name: name, 
+        phone: phone, 
+        email: email 
+      });
       await loadProfile();
       enterApp();
       showToast('Account created!');
@@ -359,9 +369,14 @@ async function loadProfile() {
   try {
     const { data } = await supabaseClient.from('profiles').select('*').eq('id', AppState.user.id).single();
     AppState.profile = data;
-    $('user-name').textContent = data ? data.full_name || 'User' : 'User';
+    // Try profile table first, then auth metadata, then fallback to 'User'
+    const fullName = data?.full_name || AppState.user.user_metadata?.full_name || 'User';
+    $('user-name').textContent = fullName;
   } catch (err) {
     console.error('loadProfile error:', err);
+    // If profile table fails, use auth metadata
+    const fullName = AppState.user.user_metadata?.full_name || 'User';
+    $('user-name').textContent = fullName;
   }
 }
 
