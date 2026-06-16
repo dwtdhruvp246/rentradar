@@ -671,7 +671,7 @@ async function savePayment(e) {
       amount: parseFloat($('pay-amount').value) || 0,
       payment_date: $('pay-date').value,
       payment_method: $('pay-method').value,
-      status: 'completed'
+      status: 'paid'
     }).select().single();
     if (error) { showToast(error.message, 'error'); return; }
     data.leases = lease;
