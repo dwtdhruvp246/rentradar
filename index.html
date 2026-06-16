@@ -35,16 +35,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .topbar h2{font-size:18px;color:var(--primary)}
 .topbar-user{display:flex;align-items:center;gap:12px}
 .menu-toggle{display:none;background:none;border:none;font-size:24px;color:var(--primary);cursor:pointer;padding:4px 8px;margin-right:8px}
-.mobile-sidebar-wrapper{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;pointer-events:none}
-.mobile-sidebar-wrapper.mobile-open{pointer-events:auto}
-.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);padding:16px 0;position:absolute;left:0;top:57px;bottom:0;overflow-y:auto}
+.mobile-sidebar-wrapper{position:static;width:auto;height:auto;z-index:auto}
+.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);padding:16px 0;position:fixed;left:0;top:57px;bottom:0;overflow-y:auto;z-index:100}
 .sidebar-item{padding:12px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--muted);border-left:3px solid transparent}
 .sidebar-item:hover{background:var(--bg);color:var(--text)}
 .sidebar-item.active{border-left-color:var(--accent);background:var(--bg);color:var(--text);font-weight:500}
 .main-content{margin-left:240px;padding:24px}
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;touch-action:none}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;touch-action:none}
 .sidebar-overlay.active{display:block}
-@media (max-width:768px){.menu-toggle{display:inline-block}.mobile-sidebar-wrapper{left:-240px;transition:left .3s ease}.mobile-sidebar-wrapper.mobile-open{left:0}.sidebar{position:absolute;left:0;top:0;bottom:0;width:240px}.sidebar-overlay.active{display:block}.main-content{margin-left:0}}
+@media (max-width:768px){.menu-toggle{display:inline-block}.mobile-sidebar-wrapper{position:fixed;top:0;left:-240px;width:100%;height:100%;z-index:9999;transition:left .3s ease}.mobile-sidebar-wrapper.mobile-open{left:0}.sidebar{position:absolute;left:0;top:0;bottom:0;width:240px;z-index:10000}.sidebar-overlay.active{display:block}.main-content{margin-left:0}}
 .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
@@ -238,12 +237,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
           <h3 style="margin-bottom:16px">Profile</h3>
           <form id="settings-form" onsubmit="handleSettingsSave(event)">
             <div class="form-group"><label>Full Name</label><input type="text" id="set-name"></div>
-            <div class="form-group"><label>Business Name</label><input type="text" id="set-business"></div>
             <div class="form-group"><label>Phone</label><input type="tel" id="set-phone"></div>
-            <div class="form-group"><label>Telegram Chat ID</label><input type="text" id="set-telegram" placeholder="Get from @BotFather"></div>
-            <div class="form-group">
-              <label><input type="checkbox" id="set-telegram-enabled"> Enable Telegram Bot Notifications</label>
-            </div>
             <button type="submit" class="btn btn-accent">Save Changes</button>
           </form>
         </div>
@@ -519,10 +513,7 @@ function renderNotifications() {
 function loadSettings() {
   if (!AppState.profile) return;
   $('set-name').value = AppState.profile.full_name || '';
-  $('set-business').value = AppState.profile.business_name || '';
   $('set-phone').value = AppState.profile.phone || '';
-  $('set-telegram').value = AppState.profile.telegram_chat_id || '';
-  $('set-telegram-enabled').checked = AppState.profile.telegram_bot_enabled || false;
 }
 
 async function handleSettingsSave(e) {
@@ -531,10 +522,7 @@ async function handleSettingsSave(e) {
   try {
     const updates = {
       full_name: $('set-name').value,
-      business_name: $('set-business').value,
-      phone: $('set-phone').value,
-      telegram_chat_id: $('set-telegram').value,
-      telegram_bot_enabled: $('set-telegram-enabled').checked
+      phone: $('set-phone').value
     };
     const { error } = await supabaseClient.from('profiles').update(updates).eq('id', AppState.user.id);
     if (error) { showToast(error.message, 'error'); return; }
@@ -563,7 +551,6 @@ function openModal(type, propertyId, unitId, tenantId) {
       '<div class="form-group"><label>Bedrooms</label><input type="number" id="unit-beds" value="0"></div>' +
       '<div class="form-group"><label>Bathrooms</label><input type="number" id="unit-baths" value="0"></div>' +
       '<div class="form-group"><label>Rent Amount</label><input type="number" id="unit-rent" value="0"></div>' +
-      '<div class="form-group"><label>Currency</label><input type="text" id="unit-currency" value="USD"></div>' +
       '<button type="submit" class="btn btn-accent">Save Unit</button></form>';
   } else if (type === 'tenant') {
     html = '<h3>Add Tenant</h3><form onsubmit="saveTenant(event)">' +
@@ -571,7 +558,6 @@ function openModal(type, propertyId, unitId, tenantId) {
       '<div class="form-group"><label>Email</label><input type="email" id="ten-email"></div>' +
       '<div class="form-group"><label>Phone</label><input type="tel" id="ten-phone"></div>' +
       '<div class="form-group"><label>ID Number</label><input type="text" id="ten-id"></div>' +
-      '<div class="form-group"><label>Emergency Contact</label><input type="text" id="ten-emergency"></div>' +
       '<button type="submit" class="btn btn-accent">Save Tenant</button></form>';
   } else if (type === 'lease') {
     html = '<h3>Add Lease</h3><form onsubmit="saveLease(event)">' +
@@ -580,9 +566,6 @@ function openModal(type, propertyId, unitId, tenantId) {
       '<div class="form-group"><label>Start Date</label><input type="date" id="lease-start" required></div>' +
       '<div class="form-group"><label>End Date</label><input type="date" id="lease-end" required></div>' +
       '<div class="form-group"><label>Rent Amount</label><input type="number" id="lease-rent" required></div>' +
-      '<div class="form-group"><label>Currency</label><input type="text" id="lease-currency" value="USD"></div>' +
-      '<div class="form-group"><label>Deposit</label><input type="number" id="lease-deposit" value="0"></div>' +
-      '<div class="form-group"><label>Payment Day</label><input type="number" id="lease-day" value="1" min="1" max="31"></div>' +
       '<button type="submit" class="btn btn-accent">Save Lease</button></form>';
     if (unitId) setTimeout(() => { const s = $('lease-unit'); if(s) s.value = unitId; }, 0);
     if (tenantId) setTimeout(() => { const s = $('lease-tenant'); if(s) s.value = tenantId; }, 0);
@@ -592,7 +575,6 @@ function openModal(type, propertyId, unitId, tenantId) {
       '<div class="form-group"><label>Amount</label><input type="number" id="pay-amount" required></div>' +
       '<div class="form-group"><label>Payment Date</label><input type="date" id="pay-date" required></div>' +
       '<div class="form-group"><label>Method</label><select id="pay-method"><option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option><option value="credit_card">Credit Card</option><option value="check">Check</option><option value="mobile_money">Mobile Money</option></select></div>' +
-      '<div class="form-group"><label>Notes</label><input type="text" id="pay-notes"></div>' +
       '<button type="submit" class="btn btn-accent">Record Payment</button></form>';
   }
   $('modal-body').innerHTML = html;
@@ -631,7 +613,6 @@ async function saveUnit(e, propId) {
       bedrooms: parseInt($('unit-beds').value) || 0,
       bathrooms: parseInt($('unit-baths').value) || 0,
       rent_amount: parseFloat($('unit-rent').value) || 0,
-      currency: $('unit-currency').value,
       status: 'vacant'
     }).select().single();
     if (error) { showToast(error.message, 'error'); return; }
@@ -649,8 +630,7 @@ async function saveTenant(e) {
       full_name: $('ten-name').value,
       email: $('ten-email').value,
       phone: $('ten-phone').value,
-      id_number: $('ten-id').value,
-      emergency_contact: $('ten-emergency').value
+      id_number: $('ten-id').value
     }).select().single();
     if (error) { showToast(error.message, 'error'); return; }
     AppState.tenants.push(data);
@@ -667,9 +647,6 @@ async function saveLease(e) {
       start_date: $('lease-start').value,
       end_date: $('lease-end').value,
       rent_amount: parseFloat($('lease-rent').value) || 0,
-      currency: $('lease-currency').value,
-      deposit_amount: parseFloat($('lease-deposit').value) || 0,
-      payment_day: parseInt($('lease-day').value) || 1,
       status: 'active'
     }).select().single();
     if (error) { showToast(error.message, 'error'); return; }
@@ -694,9 +671,6 @@ async function savePayment(e) {
       amount: parseFloat($('pay-amount').value) || 0,
       payment_date: $('pay-date').value,
       payment_method: $('pay-method').value,
-      notes: $('pay-notes').value,
-      receipt_number: receiptNum,
-      currency: lease?.currency || 'USD',
       status: 'completed'
     }).select().single();
     if (error) { showToast(error.message, 'error'); return; }
