@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
 <title>RentRadar - Property Management</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -30,15 +30,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .login-toggle{text-align:center;margin-top:16px;font-size:14px;color:var(--muted)}
 .login-toggle a{color:var(--accent);cursor:pointer;text-decoration:underline}
 #app-layout{display:none;min-height:100vh}
-#app-layout.active{display:flex;flex-direction:column}
+#app-layout.active{display:block}
 .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
 .topbar h2{font-size:18px;color:var(--primary)}
 .topbar-user{display:flex;align-items:center;gap:12px}
-.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);min-height:calc(100vh - 57px);padding:16px 0;position:fixed;left:0;top:57px}
+.menu-toggle{display:none;background:none;border:none;font-size:24px;color:var(--primary);cursor:pointer;padding:4px 8px;margin-right:8px}
+.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);min-height:calc(100vh - 57px);padding:16px 0;position:fixed;left:0;top:57px;z-index:100}
 .sidebar-item{padding:12px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--muted);border-left:3px solid transparent}
 .sidebar-item:hover{background:var(--bg);color:var(--text)}
 .sidebar-item.active{border-left-color:var(--accent);background:var(--bg);color:var(--text);font-weight:500}
-.main-content{margin-left:240px;padding:24px;flex:1}
+.main-content{margin-left:240px;padding:24px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:95;touch-action:none}
+.sidebar-overlay.active{display:block}
+@media (max-width:768px){.menu-toggle{display:inline-block}.sidebar{display:none;left:0}.sidebar.mobile-open{display:block}.main-content{margin-left:0}}
 .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
@@ -130,14 +134,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <!-- APP LAYOUT -->
 <div id="app-layout">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
   <div class="topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
     <h2>RentRadar</h2>
     <div class="topbar-user">
       <span id="user-name">User</span>
       <button class="btn btn-danger" onclick="handleLogout()">Logout</button>
     </div>
   </div>
-  <div style="display:flex">
     <div class="sidebar">
       <div class="sidebar-item active" onclick="showPage('dashboard')" data-page="dashboard">Dashboard</div>
       <div class="sidebar-item" onclick="showPage('properties')" data-page="properties">Properties</div>
@@ -242,7 +247,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       </div>
 
     </div>
-  </div>
 </div>
 
 <!-- MODALS -->
@@ -316,6 +320,22 @@ async function handleLogout() {
   $('login-form').reset();
 }
 
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (!sidebar || !overlay) return;
+  const isOpen = sidebar.classList.contains('mobile-open');
+  if (isOpen) {
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  } else {
+    sidebar.classList.add('mobile-open');
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
 function toggleAuthMode() {
   const loginForm = $('login-form');
   const regForm = $('register-form');
@@ -344,6 +364,14 @@ function showPage(page) {
   if (target) target.classList.add('active');
   const sidebarItem = document.querySelector('.sidebar-item[data-page="' + page + '"]');
   if (sidebarItem) sidebarItem.classList.add('active');
+  // Close mobile sidebar after navigation
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar && sidebar.classList.contains('mobile-open')) {
+    sidebar.classList.remove('mobile-open');
+    if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
   if (page === 'dashboard') loadDashboard();
   if (page === 'properties') renderProperties();
   if (page === 'units') renderUnits();
