@@ -1,418 +1,427 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RentRadar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.0/dist/umd/supabase.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ["Inter", "sans-serif"] },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif']
+          },
           colors: {
-            primary: { DEFAULT: "#10b981", hover: "#059669", 50: "#ecfdf5", 100: "#d1fae5", 500: "#10b981", 600: "#059669", 700: "#047857" },
-            slate: { 50: "#f8fafc", 100: "#f1f5f9", 200: "#e2e8f0", 300: "#cbd5e1", 400: "#94a3b8", 500: "#64748b", 600: "#475569", 700: "#334155", 800: "#1e293b", 900: "#0f172a" }
+            radar: {
+              50: '#ecfdf5',
+              100: '#dcfce7',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857'
+            }
+          },
+          boxShadow: {
+            soft: '0 1px 3px rgba(0,0,0,0.08)'
           }
         }
       }
-    }
+    };
   </script>
   <style>
-    body { font-family: "Inter", sans-serif; background-color: #f8fafc; }
-    .sidebar-item { transition: all 0.15s ease; }
-    .sidebar-item:hover { background-color: #f8fafc; }
-    .sidebar-item.active { background-color: #f8fafc; border-left: 3px solid #10b981; color: #047857; }
-    .card { background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .input-field { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.625rem 0.875rem; font-size: 0.875rem; transition: all 0.15s; }
-    .input-field:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
     [x-cloak] { display: none !important; }
+    body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
   </style>
-<base target="_blank">
 </head>
-<body x-data="rentRadarApp()" x-init="initApp()" x-cloak>
-
-  <!-- ==================== LOGIN PAGE ==================== -->
-  <div x-show="!currentUser && currentPage === &quot;login&quot;" class="min-h-screen flex items-center justify-center p-4" style="background-color: #f8fafc;">
-    <div class="card w-full max-w-md p-8">
-      <div class="text-center mb-8">
-        <h1 class="text-2xl font-bold text-slate-900 mb-1">RentRadar</h1>
-        <p class="text-slate-500 text-sm">Property Management</p>
-      </div>
-      <form @submit.prevent="doLogin">
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-          <input type="email" x-model="loginEmail" class="input-field w-full" required placeholder="you@example.com">
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-          <input type="password" x-model="loginPassword" class="input-field w-full" required placeholder="••••••••">
-        </div>
-        <button type="submit" :disabled="loginLoading" class="w-full py-2.5 px-4 rounded-lg text-white font-medium text-sm transition-colors bg-[#10b981] hover:bg-[#059669] disabled:opacity-70">
-          <span x-show="!loginLoading">Sign In</span>
-          <span x-show="loginLoading">Signing in...</span>
-        </button>
-        <p x-show="loginError" x-text="loginError" class="mt-3 text-sm text-red-600 text-center"></p>
-      </form>
-    </div>
-  </div>
-
-  <!-- ==================== SUSPENDED SCREEN ==================== -->
-  <div x-show="currentPage === &quot;suspended&quot;" class="min-h-screen flex items-center justify-center p-4" style="background-color: #f8fafc;">
-    <div class="card w-full max-w-md p-8 text-center">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background-color: #fee2e2;">
-        <svg class="w-8 h-8" style="color: #dc2626;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-        </svg>
-      </div>
-      <h2 class="text-xl font-bold text-slate-900 mb-2">Account Suspended</h2>
-      <p class="text-slate-500 mb-6">Your account has been suspended. Please contact RentRadar support to restore access.</p>
-      <button @click="doLogout" class="px-6 py-2.5 rounded-lg text-white font-medium text-sm bg-[#dc2626] hover:bg-[#b91c1c]">Logout</button>
-    </div>
-  </div>
-
-  <!-- ==================== INVITE FLOW PLACEHOLDER ==================== -->
-  <div x-show="currentPage === &quot;invite&quot;" class="min-h-screen flex items-center justify-center p-4" style="background-color: #f8fafc;">
-    <div class="card w-full max-w-md p-8 text-center">
-      <h2 class="text-xl font-bold text-slate-900 mb-2">Welcome to RentRadar</h2>
-      <p class="text-slate-500">Processing your invite...</p>
-    </div>
-  </div>
-
-  <!-- ==================== SUPER ADMIN SHELL ==================== -->
-  <div x-show="currentShell === &quot;super_admin&quot;" class="min-h-screen" style="background-color: #f0fdf4;">
-    <nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-slate-900">RentRadar Admin</span>
-      </div>
-      <button @click="doLogout" class="text-sm text-slate-600 hover:text-slate-900 font-medium">Logout</button>
-    </nav>
-    <main class="p-6">
-      <div x-show="currentPage === &quot;landlord_management&quot;">
-        <h2 class="text-xl font-bold text-slate-900 mb-4">Landlord Management</h2>
-        <p class="text-slate-500">Super Admin dashboard content will be built in Loop 4.</p>
-      </div>
-    </main>
-  </div>
-
-  <!-- ==================== LANDLORD / STAFF SHELL ==================== -->
-  <div x-show="currentShell === &quot;landlord_staff&quot;" class="min-h-screen flex" style="background-color: #f8fafc;">
-    <!-- Mobile overlay -->
-    <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
-
-    <!-- Sidebar -->
-    <aside :class="sidebarOpen ? &quot;translate-x-0&quot; : &quot;-translate-x-full&quot;" class="fixed lg:static lg:translate-x-0 inset-y-0 left-0 w-64 bg-white border-r border-slate-200 z-50 transition-transform duration-200 flex flex-col">
-      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
-        <span class="font-bold text-slate-900">RentRadar</span>
-        <button @click="sidebarOpen = false" class="lg:hidden text-slate-400 hover:text-slate-600">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-      </div>
-      <nav class="flex-1 overflow-y-auto py-2">
-        <template x-for="item in navItems" :key="item.page">
-          <button @click="navigateTo(item.page); sidebarOpen = false" :class="currentPage === item.page ? &quot;active&quot; : &quot;&quot;" class="sidebar-item w-full text-left px-4 py-2.5 text-sm font-medium text-slate-600 flex items-center gap-3">
-            <span x-html="item.icon"></span>
-            <span x-text="item.label"></span>
-          </button>
-        </template>
-      </nav>
-    </aside>
-
-    <!-- Main content area -->
-    <div class="flex-1 flex flex-col min-w-0">
-      <!-- Top nav -->
-      <header class="bg-white border-b border-slate-200 px-4 lg:px-6 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <button @click="sidebarOpen = true" class="lg:hidden text-slate-400 hover:text-slate-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-          </button>
-        </div>
-        <div class="flex items-center gap-4">
-          <!-- Notification bell -->
-          <button @click="navigateTo(&quot;notifications&quot;)" class="relative text-slate-500 hover:text-slate-700">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+  <div x-data="rentRadarApp()" x-init="init()" x-cloak>
+    <template x-if="booting">
+      <div class="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+        <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 text-center shadow-soft">
+          <div class="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500 text-white">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M13 2 4 14h7l-1 8 10-13h-7l0-7Z" fill="currentColor"></path>
             </svg>
-            <span x-show="unreadCount > 0" x-text="unreadCount" class="absolute -top-1 -right-1 w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-medium" style="background-color: #10b981; font-size: 10px;"></span>
-          </button>
-          <button @click="doLogout" class="text-sm text-slate-600 hover:text-slate-900 font-medium">Logout</button>
+          </div>
+          <p class="text-sm font-medium text-slate-600">Loading RentRadar...</p>
         </div>
-      </header>
-
-      <!-- Page content -->
-      <main class="flex-1 p-4 lg:p-6 overflow-y-auto">
-        <div x-show="currentPage === &quot;dashboard&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Dashboard</h2></div>
-        <div x-show="currentPage === &quot;properties&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Properties</h2></div>
-        <div x-show="currentPage === &quot;units&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Units</h2></div>
-        <div x-show="currentPage === &quot;tenants&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Tenants</h2></div>
-        <div x-show="currentPage === &quot;leases&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Leases</h2></div>
-        <div x-show="currentPage === &quot;payments&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Payments</h2></div>
-        <div x-show="currentPage === &quot;maintenance&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Maintenance</h2></div>
-        <div x-show="currentPage === &quot;staff&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Staff</h2></div>
-        <div x-show="currentPage === &quot;notifications&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Notifications</h2></div>
-        <div x-show="currentPage === &quot;settings&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Settings</h2></div>
-      </main>
-    </div>
-  </div>
-
-  <!-- ==================== TENANT SHELL ==================== -->
-  <div x-show="currentShell === &quot;tenant&quot;" class="min-h-screen pb-16" style="background-color: #f8fafc;">
-    <!-- Top nav -->
-    <nav class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-      <span class="font-bold text-slate-900">RentRadar</span>
-      <div class="flex items-center gap-3">
-        <button @click="navigateTo(&quot;tenant_notifications&quot;)" class="relative text-slate-500 hover:text-slate-700">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-          </svg>
-          <span x-show="unreadCount > 0" x-text="unreadCount" class="absolute -top-1 -right-1 w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-medium" style="background-color: #10b981; font-size: 10px;"></span>
-        </button>
-        <button @click="doLogout" class="text-sm text-slate-600 hover:text-slate-900 font-medium">Logout</button>
       </div>
-    </nav>
+    </template>
 
-    <!-- Main content -->
-    <main class="p-4">
-      <div x-show="currentPage === &quot;tenant_home&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Home</h2></div>
-      <div x-show="currentPage === &quot;tenant_payments&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Payments</h2></div>
-      <div x-show="currentPage === &quot;tenant_maintenance&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Maintenance</h2></div>
-      <div x-show="currentPage === &quot;tenant_notifications&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Notifications</h2></div>
-      <div x-show="currentPage === &quot;tenant_settings&quot;"><h2 class="text-xl font-bold text-slate-900 mb-4">Settings</h2></div>
-    </main>
+    <template x-if="!booting && currentShell === 'login'">
+      <main class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+        <section class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-soft">
+          <div class="mb-8">
+            <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white">
+              <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M13 2 4 14h7l-1 8 10-13h-7l0-7Z" fill="currentColor"></path>
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold tracking-normal text-slate-900">Sign in to RentRadar</h1>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Access is invite-only. Use the credentials created for your account.</p>
+          </div>
 
-    <!-- Bottom nav -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 flex justify-around z-30">
-      <button @click="navigateTo(&quot;tenant_home&quot;)" :class="currentPage === &quot;tenant_home&quot; ? &quot;text-[#10b981]&quot; : &quot;text-slate-400&quot;" class="flex flex-col items-center gap-0.5 text-xs font-medium">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-        <span>Home</span>
-      </button>
-      <button @click="navigateTo(&quot;tenant_payments&quot;)" :class="currentPage === &quot;tenant_payments&quot; ? &quot;text-[#10b981]&quot; : &quot;text-slate-400&quot;" class="flex flex-col items-center gap-0.5 text-xs font-medium">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-        <span>Payments</span>
-      </button>
-      <button @click="navigateTo(&quot;tenant_maintenance&quot;)" :class="currentPage === &quot;tenant_maintenance&quot; ? &quot;text-[#10b981]&quot; : &quot;text-slate-400&quot;" class="flex flex-col items-center gap-0.5 text-xs font-medium">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        <span>Maintenance</span>
-      </button>
-      <button @click="navigateTo(&quot;tenant_notifications&quot;)" :class="currentPage === &quot;tenant_notifications&quot; ? &quot;text-[#10b981]&quot; : &quot;text-slate-400&quot;" class="flex flex-col items-center gap-0.5 text-xs font-medium">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-        <span>Alerts</span>
-      </button>
-      <button @click="navigateTo(&quot;tenant_settings&quot;)" :class="currentPage === &quot;tenant_settings&quot; ? &quot;text-[#10b981]&quot; : &quot;text-slate-400&quot;" class="flex flex-col items-center gap-0.5 text-xs font-medium">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        <span>Settings</span>
-      </button>
-    </div>
+          <template x-if="successMessage">
+            <div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700" x-text="successMessage"></div>
+          </template>
+
+          <template x-if="authError">
+            <div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="authError"></div>
+          </template>
+
+          <form class="space-y-5" @submit.prevent="signIn">
+            <label class="block">
+              <span class="mb-2 block text-sm font-medium text-slate-700">Email</span>
+              <input
+                class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                type="email"
+                autocomplete="email"
+                x-model.trim="loginForm.email"
+                required>
+            </label>
+
+            <label class="block">
+              <span class="mb-2 block text-sm font-medium text-slate-700">Password</span>
+              <input
+                class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                type="password"
+                autocomplete="current-password"
+                x-model="loginForm.password"
+                required>
+            </label>
+
+            <button
+              class="flex w-full items-center justify-center rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+              type="submit"
+              :disabled="authLoading">
+              <span x-show="!authLoading">Sign in</span>
+              <span x-show="authLoading">Signing in...</span>
+            </button>
+          </form>
+        </section>
+      </main>
+    </template>
+
+    <template x-if="!booting && currentShell === 'suspended'">
+      <main class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+        <section class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 text-center shadow-soft">
+          <div class="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600">
+            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 8v5m0 3.5h.01M10.29 3.86 2.82 17a2 2 0 0 0 1.74 3h14.88a2 2 0 0 0 1.74-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+          <h1 class="text-xl font-bold text-slate-900">Account Suspended</h1>
+          <p class="mt-3 text-sm leading-6 text-slate-600">Your account has been suspended. Please contact RentRadar support to restore access.</p>
+          <button
+            class="mt-7 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+            type="button"
+            @click="logout">
+            Logout
+          </button>
+        </section>
+      </main>
+    </template>
+
+    <template x-if="!booting && currentShell === 'invite'">
+      <main class="min-h-screen bg-slate-50">
+        <div id="invite-flow-shell"></div>
+      </main>
+    </template>
+
+    <template x-if="!booting && currentShell === 'super_admin'">
+      <main id="super-admin-shell" class="min-h-screen bg-emerald-50">
+        <div id="super-admin-shell-placeholder"></div>
+      </main>
+    </template>
+
+    <template x-if="!booting && currentShell === 'app'">
+      <main id="landlord-staff-shell" class="min-h-screen bg-slate-50">
+        <div id="landlord-staff-shell-placeholder"></div>
+      </main>
+    </template>
+
+    <template x-if="!booting && currentShell === 'tenant'">
+      <main id="tenant-shell" class="min-h-screen bg-slate-50">
+        <div id="tenant-shell-placeholder"></div>
+      </main>
+    </template>
   </div>
 
-  <!-- ==================== APP LOGIC ==================== -->
   <script>
+    const SUPABASE_URL = 'https://rmbvgtaadkvbsasbvdmb.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtYnZndGFhZGt2YnNhc2J2ZG1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NTQ1NjIsImV4cCI6MjA5ODIzMDU2Mn0.kMhXDI85TVAsw_Mb-PO5iaSHipG3vLFmM7DF3TUnf00';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     function rentRadarApp() {
       return {
-        // Supabase client instance
-        supabase: null,
-
-        // Auth / identity state
-        currentUser: null,
-        currentRole: null,
-        currentShell: null,
-        currentPage: "login",
-        userProfile: null,
-        staffPermissions: null,
-        landlordSubscription: null,
-
-        // UI state
-        sidebarOpen: false,
+        booting: true,
+        authLoading: false,
+        authError: '',
+        successMessage: '',
+        currentShell: 'login',
+        currentPage: 'dashboard',
+        pageTitle: 'Dashboard',
+        user: null,
+        profile: null,
+        subscription: null,
+        permissions: {
+          all_properties: false,
+          property_ids: [],
+          can_view_tenants: false,
+          can_manage_maintenance: false,
+          can_view_payments: false,
+          can_verify_payments: false,
+          can_manage_leases: false
+        },
         unreadCount: 0,
-
-        // Login form state
-        loginEmail: "",
-        loginPassword: "",
-        loginError: "",
-        loginLoading: false,
-
-        // Navigation items for Landlord/Staff sidebar
-        get navItems() {
-          const items = [
-            { page: "dashboard", label: "Dashboard", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6\"></path></svg>" },
-            { page: "properties", label: "Properties", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5M9 11h.01M15 11h.01\"></path></svg>" },
-            { page: "units", label: "Units", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z\"></path></svg>" },
-            { page: "tenants", label: "Tenants", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z\"></path></svg>" },
-            { page: "leases", label: "Leases", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\"></path></svg>" },
-            { page: "payments", label: "Payments", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z\"></path></svg>" },
-            { page: "maintenance", label: "Maintenance", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z\"></path><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"></path></svg>" },
-            { page: "staff", label: "Staff", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z\"></path></svg>" },
-            { page: "notifications", label: "Notifications", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9\"></path></svg>" },
-            { page: "settings", label: "Settings", icon: "<svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z\"></path><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"></path></svg>" }
-          ];
-
-          if (this.currentRole === "staff") {
-            let visible = items.filter(i => i.page !== "staff");
-            if (!this.staffPermissions?.can_view_tenants) {
-              visible = visible.filter(i => i.page !== "tenants");
-            }
-            if (!this.staffPermissions?.can_manage_leases) {
-              visible = visible.filter(i => i.page !== "leases");
-            }
-            if (!this.staffPermissions?.can_view_payments) {
-              visible = visible.filter(i => i.page !== "payments");
-            }
-            if (!this.staffPermissions?.can_manage_maintenance) {
-              visible = visible.filter(i => i.page !== "maintenance");
-            }
-            return visible;
-          }
-          return items;
+        sidebarOpen: false,
+        loginForm: {
+          email: '',
+          password: ''
         },
 
-        async initApp() {
-          this.supabase = supabase.createClient(
-            "YOUR_SUPABASE_URL",
-            "YOUR_SUPABASE_ANON_KEY"
-          );
+        async init() {
+          this.successMessage = sessionStorage.getItem('rentradar_success') || '';
+          sessionStorage.removeItem('rentradar_success');
 
-          const hash = window.location.hash;
-          if (hash.startsWith("#invite=")) {
-            this.currentPage = "invite";
+          if (this.hasInviteHash()) {
+            this.currentShell = 'invite';
+            this.booting = false;
             return;
           }
 
-          const { data: { session } } = await this.supabase.auth.getSession();
-          if (session && session.user) {
-            await this.handleAuthenticated(session.user);
-          } else {
-            this.currentPage = "login";
-          }
-
-          this.supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === "SIGNED_IN" && session) {
-              await this.handleAuthenticated(session.user);
-            } else if (event === "SIGNED_OUT") {
-              this.resetApp();
-            }
-          });
-        },
-
-        async handleAuthenticated(user) {
-          this.currentUser = user;
-
-          const { data: profile, error: profileError } = await this.supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single();
-
-          if (profileError || !profile) {
-            this.loginError = "Failed to load profile. Please contact support.";
-            await this.supabase.auth.signOut();
-            this.currentPage = "login";
+          const { data, error } = await supabaseClient.auth.getSession();
+          if (error) {
+            this.authError = error.message;
+            this.booting = false;
             return;
           }
 
-          this.userProfile = profile;
-          this.currentRole = profile.role;
+          if (!data.session) {
+            this.currentShell = 'login';
+            this.booting = false;
+            return;
+          }
 
-          if (profile.role === "super_admin") {
-            this.currentShell = "super_admin";
-            this.currentPage = "landlord_management";
-          } else if (profile.role === "landlord") {
-            const { data: sub } = await this.supabase
-              .from("landlord_subscriptions")
-              .select("*")
-              .eq("landlord_id", user.id)
-              .single();
+          await this.loadAuthenticatedUser(data.session.user);
 
-            this.landlordSubscription = sub;
-
-            if (sub && (sub.status === "suspended" || new Date(sub.expires_at) < new Date())) {
-              this.currentShell = null;
-              this.currentPage = "suspended";
+          supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_OUT') {
+              this.resetSessionState();
               return;
             }
 
-            this.currentShell = "landlord_staff";
-            this.currentPage = "dashboard";
-          } else if (profile.role === "staff") {
-            const { data: perms } = await this.supabase
-              .from("staff_permissions")
-              .select("*")
-              .eq("staff_profile_id", user.id)
-              .single();
-
-            this.staffPermissions = perms || {};
-            this.currentShell = "landlord_staff";
-            this.currentPage = "dashboard";
-          } else if (profile.role === "tenant") {
-            this.currentShell = "tenant";
-            this.currentPage = "tenant_home";
-          }
-
-          this.fetchUnreadCount();
+            if (session?.user && event === 'SIGNED_IN') {
+              await this.loadAuthenticatedUser(session.user);
+            }
+          });
         },
 
-        async doLogin() {
-          this.loginError = "";
-          this.loginLoading = true;
+        hasInviteHash() {
+          const hash = window.location.hash || '';
+          return hash.startsWith('#invite=');
+        },
 
-          const { data, error } = await this.supabase.auth.signInWithPassword({
-            email: this.loginEmail,
-            password: this.loginPassword
+        async signIn() {
+          this.authError = '';
+          this.successMessage = '';
+          this.authLoading = true;
+
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: this.loginForm.email,
+            password: this.loginForm.password
           });
 
-          this.loginLoading = false;
+          this.authLoading = false;
 
           if (error) {
-            this.loginError = error.message;
+            this.authError = error.message;
             return;
           }
+
+          if (data.user) {
+            await this.loadAuthenticatedUser(data.user);
+          }
         },
 
-        async doLogout() {
-          await this.supabase.auth.signOut();
-          this.resetApp();
-        },
+        async loadAuthenticatedUser(authUser) {
+          this.booting = true;
+          this.user = authUser;
+          this.authError = '';
 
-        resetApp() {
-          this.currentUser = null;
-          this.currentRole = null;
-          this.currentShell = null;
-          this.currentPage = "login";
-          this.userProfile = null;
-          this.staffPermissions = null;
-          this.landlordSubscription = null;
-          this.unreadCount = 0;
-          this.loginEmail = "";
-          this.loginPassword = "";
-          this.loginError = "";
-          window.location.hash = "";
-        },
+          const { data: profile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
 
-        navigateTo(page) {
-          this.currentPage = page;
-        },
-
-        async fetchUnreadCount() {
-          if (!this.currentUser) return;
-
-          let query = this.supabase
-            .from("notifications")
-            .select("*", { count: "exact", head: true })
-            .eq("is_read", false);
-
-          if (this.currentRole === "landlord" || this.currentRole === "super_admin") {
-            query = query.eq("landlord_id", this.currentUser.id);
-          } else {
-            query = query.eq("profile_id", this.currentUser.id);
+          if (profileError || !profile) {
+            await supabaseClient.auth.signOut();
+            this.authError = profileError?.message || 'Profile not found for this account.';
+            this.currentShell = 'login';
+            this.booting = false;
+            return;
           }
 
-          const { count } = await query;
-          this.unreadCount = count || 0;
+          this.profile = profile;
+
+          if (profile.role === 'super_admin') {
+            this.currentShell = 'super_admin';
+            this.currentPage = 'landlord-management';
+            this.pageTitle = 'Landlord Management';
+            this.booting = false;
+            return;
+          }
+
+          if (profile.role === 'landlord') {
+            const hasAccess = await this.checkLandlordSubscription(profile.id);
+            if (!hasAccess) {
+              this.currentShell = 'suspended';
+              this.booting = false;
+              return;
+            }
+
+            this.currentShell = 'app';
+            this.currentPage = 'dashboard';
+            this.pageTitle = 'Dashboard';
+            await this.loadUnreadCount(profile.id);
+            this.booting = false;
+            return;
+          }
+
+          if (profile.role === 'staff') {
+            await this.loadStaffPermissions(profile.id);
+            this.currentShell = 'app';
+            this.currentPage = 'dashboard';
+            this.pageTitle = 'Dashboard';
+            await this.loadUnreadCount(profile.id);
+            this.booting = false;
+            return;
+          }
+
+          if (profile.role === 'tenant') {
+            this.currentShell = 'tenant';
+            this.currentPage = 'tenant-home';
+            this.pageTitle = 'Home';
+            await this.loadUnreadCount(profile.id);
+            this.booting = false;
+            return;
+          }
+
+          await supabaseClient.auth.signOut();
+          this.authError = 'This account role is not supported.';
+          this.currentShell = 'login';
+          this.booting = false;
+        },
+
+        async checkLandlordSubscription(landlordId) {
+          const { data, error } = await supabaseClient
+            .from('landlord_subscriptions')
+            .select('status, expires_at, notes')
+            .eq('landlord_id', landlordId)
+            .maybeSingle();
+
+          if (error || !data) {
+            this.subscription = null;
+            return false;
+          }
+
+          this.subscription = data;
+          const expiresAt = new Date(data.expires_at);
+          const activeStatus = data.status === 'active' || data.status === 'trial';
+          return activeStatus && expiresAt.getTime() > Date.now();
+        },
+
+        async loadStaffPermissions(staffProfileId) {
+          const { data, error } = await supabaseClient
+            .from('staff_permissions')
+            .select('*')
+            .eq('staff_profile_id', staffProfileId)
+            .maybeSingle();
+
+          if (!error && data) {
+            this.permissions = {
+              all_properties: Boolean(data.all_properties),
+              property_ids: data.property_ids || [],
+              can_view_tenants: Boolean(data.can_view_tenants),
+              can_manage_maintenance: Boolean(data.can_manage_maintenance),
+              can_view_payments: Boolean(data.can_view_payments),
+              can_verify_payments: Boolean(data.can_verify_payments),
+              can_manage_leases: Boolean(data.can_manage_leases)
+            };
+          }
+        },
+
+        async loadUnreadCount(profileId) {
+          const { count, error } = await supabaseClient
+            .from('notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('profile_id', profileId)
+            .eq('is_read', false);
+
+          if (!error) {
+            this.unreadCount = count || 0;
+          }
+        },
+
+        navigate(page) {
+          this.currentPage = page;
+          this.pageTitle = this.titleForPage(page);
+          this.sidebarOpen = false;
+        },
+
+        titleForPage(page) {
+          const titles = {
+            dashboard: 'Dashboard',
+            properties: 'Properties',
+            units: 'Units',
+            tenants: 'Tenants',
+            leases: 'Leases',
+            payments: 'Payments',
+            maintenance: 'Maintenance',
+            staff: 'Staff',
+            notifications: 'Notifications',
+            settings: 'Settings',
+            'tenant-home': 'Home',
+            'tenant-payments': 'Payments',
+            'tenant-maintenance': 'Maintenance',
+            'tenant-notifications': 'Notifications',
+            'tenant-settings': 'Settings'
+          };
+
+          return titles[page] || 'RentRadar';
+        },
+
+        async logout() {
+          await supabaseClient.auth.signOut();
+          this.resetSessionState();
+        },
+
+        resetSessionState() {
+          this.user = null;
+          this.profile = null;
+          this.subscription = null;
+          this.permissions = {
+            all_properties: false,
+            property_ids: [],
+            can_view_tenants: false,
+            can_manage_maintenance: false,
+            can_view_payments: false,
+            can_verify_payments: false,
+            can_manage_leases: false
+          };
+          this.unreadCount = 0;
+          this.currentShell = 'login';
+          this.currentPage = 'dashboard';
+          this.pageTitle = 'Dashboard';
+          this.loginForm.password = '';
+          this.booting = false;
         }
       };
     }
