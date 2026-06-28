@@ -129,8 +129,90 @@
     </template>
 
     <template x-if="!booting && currentShell === 'invite'">
-      <main class="min-h-screen bg-slate-50">
-        <div id="invite-flow-shell"></div>
+      <main class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+        <section id="invite-flow-shell" class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-soft">
+          <div class="mb-8">
+            <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-white">
+              <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M13 2 4 14h7l-1 8 10-13h-7l0-7Z" fill="currentColor"></path>
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold tracking-normal text-slate-900">Welcome to RentRadar</h1>
+            <p class="mt-2 text-sm leading-6 text-slate-500">Set your password to activate your invited account.</p>
+          </div>
+
+          <template x-if="invite.loading">
+            <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">Checking your invite...</div>
+          </template>
+
+          <template x-if="!invite.loading && invite.error">
+            <div>
+              <div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="invite.error"></div>
+              <button
+                class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+                type="button"
+                @click="goToLogin">
+                Go to Login
+              </button>
+            </div>
+          </template>
+
+          <template x-if="!invite.loading && invite.tokenRow && !invite.error">
+            <form class="space-y-5" @submit.prevent="acceptInvite">
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Full name</span>
+                <input
+                  class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none"
+                  type="text"
+                  x-model="invite.form.fullName"
+                  readonly>
+              </label>
+
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Email</span>
+                <input
+                  class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600 outline-none"
+                  type="email"
+                  x-model="invite.form.email"
+                  readonly>
+              </label>
+
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Password</span>
+                <input
+                  class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  type="password"
+                  autocomplete="new-password"
+                  x-model="invite.form.password"
+                  minlength="8"
+                  required>
+              </label>
+
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Confirm password</span>
+                <input
+                  class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  type="password"
+                  autocomplete="new-password"
+                  x-model="invite.form.confirmPassword"
+                  minlength="8"
+                  required>
+              </label>
+
+              <template x-if="invite.submitError">
+                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="invite.submitError"></div>
+              </template>
+
+              <button
+                class="flex w-full items-center justify-center rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                type="submit"
+                :disabled="invite.submitting">
+                <span x-show="!invite.submitting">Create account</span>
+                <span x-show="invite.submitting">Creating account...</span>
+              </button>
+            </form>
+          </template>
+        </section>
       </main>
     </template>
 
@@ -185,6 +267,20 @@
           email: '',
           password: ''
         },
+        invite: {
+          token: '',
+          tokenRow: null,
+          loading: false,
+          submitting: false,
+          error: '',
+          submitError: '',
+          form: {
+            fullName: '',
+            email: '',
+            password: '',
+            confirmPassword: ''
+          }
+        },
 
         async init() {
           this.successMessage = sessionStorage.getItem('rentradar_success') || '';
@@ -193,6 +289,7 @@
           if (this.hasInviteHash()) {
             this.currentShell = 'invite';
             this.booting = false;
+            await this.validateInvite();
             return;
           }
 
@@ -226,6 +323,179 @@
         hasInviteHash() {
           const hash = window.location.hash || '';
           return hash.startsWith('#invite=');
+        },
+
+        getInviteTokenFromHash() {
+          const hash = window.location.hash || '';
+          if (!hash.startsWith('#invite=')) return '';
+          return decodeURIComponent(hash.replace('#invite=', '').trim());
+        },
+
+        async validateInvite() {
+          this.invite.loading = true;
+          this.invite.error = '';
+          this.invite.submitError = '';
+          this.invite.token = this.getInviteTokenFromHash();
+
+          if (!this.invite.token) {
+            this.invite.error = 'Invite token is missing.';
+            this.invite.loading = false;
+            return;
+          }
+
+          const { data, error } = await supabaseClient.rpc('validate_invite_token', {
+            p_token: this.invite.token
+          });
+
+          if (error) {
+            this.invite.error = error.message || 'This invite link is invalid or expired.';
+            this.invite.loading = false;
+            return;
+          }
+
+          const tokenRow = Array.isArray(data) ? data[0] : data;
+          if (!tokenRow) {
+            this.invite.error = 'This invite link is invalid or expired.';
+            this.invite.loading = false;
+            return;
+          }
+
+          const metadata = tokenRow.metadata || {};
+          this.invite.tokenRow = tokenRow;
+          this.invite.form.fullName = metadata.full_name || metadata.fullName || '';
+          this.invite.form.email = tokenRow.email || '';
+          this.invite.form.password = '';
+          this.invite.form.confirmPassword = '';
+          this.invite.loading = false;
+        },
+
+        async acceptInvite() {
+          this.invite.submitError = '';
+
+          if (!this.invite.tokenRow) {
+            this.invite.submitError = 'Invite details are not loaded yet.';
+            return;
+          }
+
+          if (this.invite.form.password !== this.invite.form.confirmPassword) {
+            this.invite.submitError = 'Passwords do not match.';
+            return;
+          }
+
+          if (this.invite.form.password.length < 8) {
+            this.invite.submitError = 'Password must be at least 8 characters.';
+            return;
+          }
+
+          this.invite.submitting = true;
+          await supabaseClient.auth.signOut();
+
+          const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
+            email: this.invite.form.email,
+            password: this.invite.form.password
+          });
+
+          if (signUpError) {
+            this.invite.submitError = signUpError.message;
+            this.invite.submitting = false;
+            return;
+          }
+
+          if (!signUpData.session || !signUpData.user) {
+            this.invite.submitError = 'Account created, but Supabase did not start a session. Disable email confirmation for invite-only accounts, then retry with a fresh invite.';
+            this.invite.submitting = false;
+            return;
+          }
+
+          const tokenRow = this.invite.tokenRow;
+          const metadata = tokenRow.metadata || {};
+          const profilePayload = {
+            id: signUpData.user.id,
+            landlord_id: tokenRow.role === 'landlord' ? null : tokenRow.landlord_id,
+            full_name: this.invite.form.fullName || metadata.full_name || metadata.fullName || tokenRow.email,
+            phone: metadata.phone || null,
+            email: tokenRow.email,
+            role: tokenRow.role
+          };
+
+          const { error: profileError } = await supabaseClient
+            .from('profiles')
+            .insert(profilePayload);
+
+          if (profileError) {
+            this.invite.submitError = profileError.message;
+            this.invite.submitting = false;
+            return;
+          }
+
+          if (tokenRow.role === 'staff') {
+            const { error: permissionsError } = await supabaseClient
+              .from('staff_permissions')
+              .insert({
+                landlord_id: tokenRow.landlord_id,
+                staff_profile_id: signUpData.user.id,
+                all_properties: Boolean(metadata.all_properties),
+                property_ids: metadata.property_ids || [],
+                can_view_tenants: Boolean(metadata.can_view_tenants),
+                can_manage_maintenance: Boolean(metadata.can_manage_maintenance),
+                can_view_payments: Boolean(metadata.can_view_payments),
+                can_verify_payments: Boolean(metadata.can_verify_payments),
+                can_manage_leases: Boolean(metadata.can_manage_leases),
+                accepted_at: new Date().toISOString()
+              });
+
+            if (permissionsError) {
+              this.invite.submitError = permissionsError.message;
+              this.invite.submitting = false;
+              return;
+            }
+          }
+
+          if (tokenRow.role === 'tenant') {
+            const tenantUpdate = supabaseClient
+              .from('tenants')
+              .update({
+                profile_id: signUpData.user.id,
+                invite_accepted: true
+              });
+
+            const tenantScopedUpdate = metadata.tenant_id
+              ? tenantUpdate.eq('id', metadata.tenant_id)
+              : tenantUpdate.eq('landlord_id', tokenRow.landlord_id).eq('email', tokenRow.email).eq('invite_accepted', false);
+
+            const { error: tenantError } = await tenantScopedUpdate;
+
+            if (tenantError) {
+              this.invite.submitError = tenantError.message;
+              this.invite.submitting = false;
+              return;
+            }
+          }
+
+          const { error: tokenError } = await supabaseClient
+            .from('invite_tokens')
+            .update({ used: true })
+            .eq('id', tokenRow.id);
+
+          if (tokenError) {
+            this.invite.submitError = tokenError.message;
+            this.invite.submitting = false;
+            return;
+          }
+
+          await supabaseClient.auth.signOut();
+          sessionStorage.setItem('rentradar_success', 'Account created successfully. Please sign in.');
+          this.goToLogin(tokenRow.email);
+        },
+
+        goToLogin(email = '') {
+          window.history.replaceState(null, '', window.location.pathname);
+          this.currentShell = 'login';
+          this.loginForm.email = email || this.invite.form.email || '';
+          this.loginForm.password = '';
+          this.successMessage = sessionStorage.getItem('rentradar_success') || this.successMessage;
+          sessionStorage.removeItem('rentradar_success');
+          this.invite.submitting = false;
         },
 
         async signIn() {
