@@ -259,11 +259,11 @@
             .from('profiles')
             .select('*')
             .eq('id', authUser.id)
-            .single();
+            .maybeSingle();
 
           if (profileError || !profile) {
             await supabaseClient.auth.signOut();
-            this.authError = profileError?.message || 'Profile not found for this account.';
+            this.authError = profileError?.message || 'Your login exists, but no RentRadar profile is linked to this account. Create or repair the matching profiles row in Supabase.';
             this.currentShell = 'login';
             this.booting = false;
             return;
