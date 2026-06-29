@@ -2497,41 +2497,68 @@
         },
 
         async init() {
-          this.successMessage = sessionStorage.getItem('rentradar_success') || '';
-          sessionStorage.removeItem('rentradar_success');
+          try {
+            this.successMessage = sessionStorage.getItem('rentradar_success') || '';
+            sessionStorage.removeItem('rentradar_success');
 
-          if (this.hasInviteHash()) {
-            this.currentShell = 'invite';
-            this.booting = false;
-            await this.validateInvite();
-            return;
-          }
-
-          const { data, error } = await supabaseClient.auth.getSession();
-          if (error) {
-            this.authError = error.message;
-            this.booting = false;
-            return;
-          }
-
-          if (!data.session) {
-            this.currentShell = 'login';
-            this.booting = false;
-            return;
-          }
-
-          await this.loadAuthenticatedUser(data.session.user);
-
-          supabaseClient.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_OUT') {
-              this.resetSessionState();
+            if (this.hasInviteHash()) {
+              this.currentShell = 'invite';
+              this.booting = false;
+              await this.validateInvite();
               return;
             }
 
-            if (session?.user && event === 'SIGNED_IN') {
-              await this.loadAuthenticatedUser(session.user);
+            const { data, error } = await this.withTimeout(
+              supabaseClient.auth.getSession(),
+              12000,
+              'Session restore is taking too long. Please refresh once or sign in again.'
+            );
+
+            if (error) {
+              this.authError = error.message;
+              this.currentShell = 'login';
+              this.booting = false;
+              return;
             }
+
+            if (!data.session) {
+              this.currentShell = 'login';
+              this.booting = false;
+              return;
+            }
+
+            await this.loadAuthenticatedUser(data.session.user);
+
+            supabaseClient.auth.onAuthStateChange(async (event, session) => {
+              try {
+                if (event === 'SIGNED_OUT') {
+                  this.resetSessionState();
+                  return;
+                }
+
+                if (session?.user && event === 'SIGNED_IN') {
+                  await this.loadAuthenticatedUser(session.user);
+                }
+              } catch (error) {
+                this.authError = error.message || 'Authentication state could not be restored.';
+                this.currentShell = 'login';
+                this.booting = false;
+              }
+            });
+          } catch (error) {
+            this.authError = error.message || 'RentRadar could not finish loading. Please refresh once or sign in again.';
+            this.currentShell = 'login';
+            this.booting = false;
+          }
+        },
+
+        withTimeout(promise, milliseconds, message) {
+          let timerId;
+          const timeout = new Promise((_, reject) => {
+            timerId = window.setTimeout(() => reject(new Error(message)), milliseconds);
           });
+
+          return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timerId));
         },
 
         hasInviteHash() {
@@ -5094,11 +5121,15 @@
           this.user = authUser;
           this.authError = '';
 
-          const { data: profile, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .maybeSingle();
+          const { data: profile, error: profileError } = await this.withTimeout(
+            supabaseClient
+              .from('profiles')
+              .select('*')
+              .eq('id', authUser.id)
+              .maybeSingle(),
+            12000,
+            'Profile loading is taking too long. Please refresh once or sign in again.'
+          );
 
           if (profileError || !profile) {
             await supabaseClient.auth.signOut();
@@ -5115,13 +5146,17 @@
             this.currentPage = this.restorePage('landlord-management');
             this.pageTitle = 'Landlord Management';
             this.storeCurrentPage(this.currentPage);
-            await this.refreshCurrentPage();
             this.booting = false;
+            await this.refreshCurrentPage();
             return;
           }
 
           if (profile.role === 'landlord') {
-            const hasAccess = await this.checkLandlordSubscription(profile.id);
+            const hasAccess = await this.withTimeout(
+              this.checkLandlordSubscription(profile.id),
+              12000,
+              'Subscription check is taking too long. Please refresh once.'
+            );
             if (!hasAccess) {
               this.currentShell = 'suspended';
               this.booting = false;
@@ -5136,13 +5171,17 @@
             await this.loadUnreadCount(profile.id);
             this.startUnreadRefresh(profile.id);
             this.loadSettingsData();
-            await this.refreshCurrentPage();
             this.booting = false;
+            await this.refreshCurrentPage();
             return;
           }
 
           if (profile.role === 'staff') {
-            await this.loadStaffPermissions(profile.id);
+            await this.withTimeout(
+              this.loadStaffPermissions(profile.id),
+              12000,
+              'Staff permissions are taking too long. Please refresh once.'
+            );
             this.currentShell = 'app';
             this.currentPage = this.restorePage('dashboard');
             this.pageTitle = this.titleForPage(this.currentPage);
@@ -5150,8 +5189,8 @@
             await this.loadUnreadCount(profile.id);
             this.startUnreadRefresh(profile.id);
             this.loadSettingsData();
-            await this.refreshCurrentPage();
             this.booting = false;
+            await this.refreshCurrentPage();
             return;
           }
 
@@ -5163,8 +5202,8 @@
             await this.loadUnreadCount(profile.id);
             this.startUnreadRefresh(profile.id);
             this.loadSettingsData();
-            await this.refreshCurrentPage();
             this.booting = false;
+            await this.refreshCurrentPage();
             return;
           }
 
