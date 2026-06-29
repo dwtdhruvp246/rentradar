@@ -672,6 +672,258 @@
                   </div>
                 </div>
               </template>
+
+              <template x-if="currentPage === 'properties'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Properties</h1>
+                        <p class="mt-1 text-sm text-slate-500">Create properties and open one to filter its units.</p>
+                      </div>
+                      <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadPropertyUnitData">Refresh</button>
+                    </div>
+
+                    <template x-if="propertyUnit.error">
+                      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="propertyUnit.error"></div>
+                    </template>
+
+                    <form x-show="canManageProperties()" class="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]" @submit.prevent="addProperty">
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Property name" x-model.trim="propertyUnit.propertyForm.name" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Address" x-model.trim="propertyUnit.propertyForm.address" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="City" x-model.trim="propertyUnit.propertyForm.city" required>
+                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="propertyUnit.saving">Add Property</button>
+                    </form>
+                  </section>
+
+                  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <template x-if="!propertyUnit.loading && propertyUnit.properties.length === 0">
+                      <div class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-soft md:col-span-2 xl:col-span-3">No properties yet.</div>
+                    </template>
+
+                    <template x-for="property in propertyUnit.properties" :key="property.id">
+                      <button class="rounded-xl border border-slate-200 bg-white p-5 text-left shadow-soft transition hover:border-emerald-300 hover:shadow-md" type="button" @click="openPropertyUnits(property.id)">
+                        <div class="flex items-start justify-between gap-4">
+                          <div>
+                            <h2 class="text-base font-bold text-slate-900" x-text="property.name"></h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-600" x-text="property.address"></p>
+                            <p class="text-sm text-slate-500" x-text="property.city"></p>
+                          </div>
+                          <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700" x-text="`${unitCountForProperty(property.id)} units`"></span>
+                        </div>
+                      </button>
+                    </template>
+                  </section>
+                </div>
+              </template>
+
+              <template x-if="currentPage === 'units'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Units</h1>
+                        <p class="mt-1 text-sm text-slate-500" x-text="propertyUnit.selectedPropertyId ? `Filtered by ${propertyName(propertyUnit.selectedPropertyId)}` : 'All units across your properties.'"></p>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        <button x-show="propertyUnit.selectedPropertyId" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="propertyUnit.selectedPropertyId = ''">Clear Filter</button>
+                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadPropertyUnitData">Refresh</button>
+                      </div>
+                    </div>
+
+                    <template x-if="propertyUnit.error">
+                      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="propertyUnit.error"></div>
+                    </template>
+
+                    <form x-show="canManageProperties()" class="grid gap-3 lg:grid-cols-[1.2fr_0.9fr_0.7fr_0.7fr_0.9fr_auto]" @submit.prevent="addUnit">
+                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.unitForm.propertyId" required>
+                        <option value="">Property</option>
+                        <template x-for="property in propertyUnit.properties" :key="property.id">
+                          <option :value="property.id" x-text="property.name"></option>
+                        </template>
+                      </select>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Unit number" x-model.trim="propertyUnit.unitForm.unitNumber" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" placeholder="Beds" x-model.number="propertyUnit.unitForm.bedrooms" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" placeholder="Baths" x-model.number="propertyUnit.unitForm.bathrooms" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Monthly rent" x-model.number="propertyUnit.unitForm.monthlyRent" required>
+                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="propertyUnit.saving">Add Unit</button>
+                    </form>
+                  </section>
+
+                  <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th class="px-4 py-3 font-semibold">Unit</th>
+                            <th class="px-4 py-3 font-semibold">Property</th>
+                            <th class="px-4 py-3 font-semibold">Bedrooms</th>
+                            <th class="px-4 py-3 font-semibold">Bathrooms</th>
+                            <th class="px-4 py-3 font-semibold">Rent</th>
+                            <th class="px-4 py-3 font-semibold">Status</th>
+                            <th class="px-4 py-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                          <template x-if="!propertyUnit.loading && filteredUnits().length === 0">
+                            <tr>
+                              <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No units found.</td>
+                            </tr>
+                          </template>
+                          <template x-for="unit in filteredUnits()" :key="unit.id">
+                            <tr class="odd:bg-white even:bg-slate-50/60">
+                              <td class="px-4 py-3 font-semibold text-slate-900" x-text="unit.unit_number"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="unit.property?.name || propertyName(unit.property_id)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="unit.bedrooms"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="unit.bathrooms"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatCurrency(unit.monthly_rent)"></td>
+                              <td class="px-4 py-3">
+                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="unit.status === 'occupied' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'" x-text="titleCase(unit.status)"></span>
+                              </td>
+                              <td class="px-4 py-3">
+                                <div class="flex flex-wrap gap-2">
+                                  <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewUnit(unit)">View</button>
+                                  <button x-show="canManageLeases() && unit.status === 'vacant'" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100" type="button" @click="prepareAssignTenant(unit)">Assign Tenant</button>
+                                </div>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section x-show="propertyUnit.selectedUnit" class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h2 class="text-lg font-bold text-slate-900" x-text="propertyUnit.selectedUnit ? `Unit ${propertyUnit.selectedUnit.unit_number}` : 'Unit Detail'"></h2>
+                        <p class="mt-1 text-sm text-slate-500" x-text="propertyUnit.selectedUnit ? propertyName(propertyUnit.selectedUnit.property_id) : ''"></p>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="startEditSelectedUnit">Edit Unit</button>
+                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="prepareUnitPayment">Log Payment</button>
+                        <button x-show="canManageLeases()" class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="prepareAssignTenant(propertyUnit.selectedUnit)">Change Tenant</button>
+                      </div>
+                    </div>
+
+                    <div class="grid gap-4 lg:grid-cols-3">
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <h3 class="text-sm font-semibold text-slate-900">Unit Info</h3>
+                        <dl class="mt-3 space-y-2 text-sm">
+                          <div class="flex justify-between gap-4"><dt class="text-slate-500">Bedrooms</dt><dd class="font-medium text-slate-900" x-text="propertyUnit.selectedUnit?.bedrooms"></dd></div>
+                          <div class="flex justify-between gap-4"><dt class="text-slate-500">Bathrooms</dt><dd class="font-medium text-slate-900" x-text="propertyUnit.selectedUnit?.bathrooms"></dd></div>
+                          <div class="flex justify-between gap-4"><dt class="text-slate-500">Rent</dt><dd class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.selectedUnit?.monthly_rent)"></dd></div>
+                          <div class="flex justify-between gap-4"><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900" x-text="titleCase(propertyUnit.selectedUnit?.status || '')"></dd></div>
+                        </dl>
+                      </div>
+
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 lg:col-span-2">
+                        <h3 class="text-sm font-semibold text-slate-900">Current Tenant + Lease</h3>
+                        <template x-if="propertyUnit.currentLease">
+                          <div class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                            <p><span class="text-slate-500">Tenant:</span> <span class="font-medium text-slate-900" x-text="propertyUnit.currentLease.tenant?.full_name || '-'"></span></p>
+                            <p><span class="text-slate-500">Lease:</span> <span class="font-medium text-slate-900" x-text="`${formatDate(propertyUnit.currentLease.start_date)} - ${formatDate(propertyUnit.currentLease.end_date)}`"></span></p>
+                            <p><span class="text-slate-500">Rent:</span> <span class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.currentLease.monthly_rent)"></span></p>
+                            <p><span class="text-slate-500">Deposit:</span> <span class="font-medium text-slate-900" x-text="propertyUnit.currentLease.deposit_paid ? 'Paid' : 'Unpaid'"></span></p>
+                            <a x-show="propertyUnit.currentLease.lease_document_url" class="text-sm font-semibold text-emerald-700 underline" :href="propertyUnit.currentLease.lease_document_url" target="_blank" rel="noreferrer">Download Lease Document</a>
+                          </div>
+                        </template>
+                        <template x-if="!propertyUnit.currentLease">
+                          <p class="mt-3 text-sm text-slate-500">No active lease for this unit.</p>
+                        </template>
+                      </div>
+                    </div>
+
+                    <template x-if="propertyUnit.detailMode === 'edit'">
+                      <form class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]" @submit.prevent="saveSelectedUnitEdit">
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.editUnitForm.unitNumber" required>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.editUnitForm.bedrooms" required>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.editUnitForm.bathrooms" required>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.editUnitForm.monthlyRent" required>
+                        <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Save Unit</button>
+                      </form>
+                    </template>
+
+                    <template x-if="propertyUnit.detailMode === 'assign'">
+                      <form class="mt-5 grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr_0.9fr_0.9fr_0.9fr_auto]" @submit.prevent="assignTenantToSelectedUnit">
+                        <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.assignForm.tenantId" required>
+                          <option value="">Unassigned tenant</option>
+                          <template x-for="tenant in unassignedTenants()" :key="tenant.id">
+                            <option :value="tenant.id" x-text="tenant.full_name"></option>
+                          </template>
+                        </select>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.assignForm.startDate" required>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.assignForm.endDate" required>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.assignForm.rent" required>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Deposit" x-model.number="propertyUnit.assignForm.depositAmount">
+                        <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
+                          <input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="propertyUnit.assignForm.depositPaid">
+                          Deposit paid
+                        </label>
+                        <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Assign</button>
+                      </form>
+                    </template>
+
+                    <template x-if="propertyUnit.detailMode === 'payment'">
+                      <form class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto]" @submit.prevent="logPaymentForSelectedUnit">
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" placeholder="Amount" x-model.number="propertyUnit.paymentForm.amount" required>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.paymentForm.date" required>
+                        <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.paymentForm.method" required>
+                          <option value="cash">Cash</option>
+                          <option value="bank_transfer">Bank Transfer</option>
+                          <option value="mobile_money">Mobile Money</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Notes" x-model.trim="propertyUnit.paymentForm.notes">
+                        <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Log Payment</button>
+                      </form>
+                    </template>
+
+                    <div class="mt-6 grid gap-6 xl:grid-cols-2">
+                      <section class="overflow-hidden rounded-lg border border-slate-200">
+                        <div class="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                          <h3 class="text-sm font-semibold text-slate-900">Payment History</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                          <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                            <thead class="bg-white text-xs uppercase tracking-wide text-slate-500">
+                              <tr><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Method</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                              <template x-if="propertyUnit.payments.length === 0">
+                                <tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="4">No verified payments.</td></tr>
+                              </template>
+                              <template x-for="payment in propertyUnit.payments" :key="payment.id">
+                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="payment.receipt_number || '-'"></td><td class="px-4 py-3" x-text="formatCurrency(payment.amount_paid)"></td><td class="px-4 py-3" x-text="formatDate(payment.payment_date)"></td><td class="px-4 py-3" x-text="titleCase(payment.payment_method)"></td></tr>
+                              </template>
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+
+                      <section class="overflow-hidden rounded-lg border border-slate-200">
+                        <div class="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                          <h3 class="text-sm font-semibold text-slate-900">Maintenance History</h3>
+                        </div>
+                        <div class="divide-y divide-slate-200">
+                          <template x-if="propertyUnit.maintenance.length === 0">
+                            <p class="px-4 py-6 text-center text-sm text-slate-500">No maintenance requests.</p>
+                          </template>
+                          <template x-for="request in propertyUnit.maintenance" :key="request.id">
+                            <div class="px-4 py-3">
+                              <div class="flex items-center justify-between gap-3">
+                                <p class="text-sm font-semibold text-slate-900" x-text="request.description"></p>
+                                <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="maintenanceBadgeClass(request.status)" x-text="titleCase(request.status)"></span>
+                              </div>
+                              <p class="mt-1 text-xs text-slate-500" x-text="`${titleCase(request.priority)} priority · ${formatDate(request.created_at)}`"></p>
+                            </div>
+                          </template>
+                        </div>
+                      </section>
+                    </div>
+                  </section>
+                </div>
+              </template>
             </section>
           </div>
         </div>
@@ -774,6 +1026,53 @@
           },
           recentPayments: [],
           leaseExpirations: []
+        },
+        propertyUnit: {
+          loading: false,
+          saving: false,
+          error: '',
+          selectedPropertyId: '',
+          selectedUnit: null,
+          currentLease: null,
+          payments: [],
+          maintenance: [],
+          properties: [],
+          units: [],
+          tenants: [],
+          leases: [],
+          detailMode: '',
+          propertyForm: {
+            name: '',
+            address: '',
+            city: ''
+          },
+          unitForm: {
+            propertyId: '',
+            unitNumber: '',
+            bedrooms: 1,
+            bathrooms: 1,
+            monthlyRent: 0
+          },
+          editUnitForm: {
+            unitNumber: '',
+            bedrooms: 1,
+            bathrooms: 1,
+            monthlyRent: 0
+          },
+          assignForm: {
+            tenantId: '',
+            startDate: '',
+            endDate: '',
+            rent: 0,
+            depositAmount: 0,
+            depositPaid: false
+          },
+          paymentForm: {
+            amount: 0,
+            date: '',
+            method: 'cash',
+            notes: ''
+          }
         },
 
         async init() {
@@ -1487,6 +1786,324 @@
           }).format(Number(value || 0));
         },
 
+        currentLandlordId() {
+          if (this.profile?.role === 'landlord') return this.profile.id;
+          return this.profile?.landlord_id || null;
+        },
+
+        canManageLeases() {
+          return this.profile?.role === 'landlord' || Boolean(this.permissions.can_manage_leases);
+        },
+
+        canManageProperties() {
+          return this.profile?.role === 'landlord';
+        },
+
+        async loadPropertyUnitData() {
+          this.propertyUnit.loading = true;
+          this.propertyUnit.error = '';
+
+          const canLoadTenants = this.profile?.role === 'landlord' || this.permissions.can_view_tenants || this.permissions.can_manage_leases;
+          const canLoadLeases = this.profile?.role === 'landlord' || this.permissions.can_manage_leases || this.permissions.can_view_tenants || this.permissions.can_view_payments || this.permissions.can_verify_payments;
+          const results = await Promise.all([
+            supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').order('created_at', { ascending: false }),
+            supabaseClient.from('units').select('id, property_id, unit_number, bedrooms, bathrooms, monthly_rent, status, created_at, properties(id, name, address, city)').order('created_at', { ascending: false }),
+            canLoadTenants
+              ? supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_accepted, created_at').order('full_name', { ascending: true })
+              : Promise.resolve({ data: [], error: null }),
+            canLoadLeases
+              ? supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, status, created_at, tenants(id, full_name, email, phone)').order('end_date', { ascending: true })
+              : Promise.resolve({ data: [], error: null })
+          ]);
+
+          const [propertiesResult, unitsResult, tenantsResult, leasesResult] = results;
+          const firstError = propertiesResult.error || unitsResult.error || tenantsResult.error || leasesResult.error;
+
+          if (firstError) {
+            this.propertyUnit.error = firstError.message;
+          }
+
+          this.propertyUnit.properties = propertiesResult.data || [];
+          this.propertyUnit.units = (unitsResult.data || []).map(unit => ({
+            ...unit,
+            property: unit.properties || null
+          }));
+          this.propertyUnit.tenants = tenantsResult.data || [];
+          this.propertyUnit.leases = (leasesResult.data || []).map(lease => ({
+            ...lease,
+            tenant: lease.tenants || null
+          }));
+
+          if (this.propertyUnit.selectedUnit) {
+            const refreshedUnit = this.propertyUnit.units.find(unit => unit.id === this.propertyUnit.selectedUnit.id);
+            this.propertyUnit.selectedUnit = refreshedUnit || null;
+            if (refreshedUnit) await this.loadUnitDetail(refreshedUnit);
+          }
+
+          this.propertyUnit.loading = false;
+        },
+
+        async addProperty() {
+          this.propertyUnit.error = '';
+          this.propertyUnit.saving = true;
+
+          const { error } = await supabaseClient
+            .from('properties')
+            .insert({
+              landlord_id: this.currentLandlordId(),
+              name: this.propertyUnit.propertyForm.name,
+              address: this.propertyUnit.propertyForm.address,
+              city: this.propertyUnit.propertyForm.city
+            });
+
+          if (error) {
+            this.propertyUnit.error = error.message;
+            this.propertyUnit.saving = false;
+            return;
+          }
+
+          this.propertyUnit.propertyForm = { name: '', address: '', city: '' };
+          this.propertyUnit.saving = false;
+          await this.loadPropertyUnitData();
+          await this.loadDashboardData();
+        },
+
+        async addUnit() {
+          this.propertyUnit.error = '';
+          this.propertyUnit.saving = true;
+
+          const { error } = await supabaseClient
+            .from('units')
+            .insert({
+              property_id: this.propertyUnit.unitForm.propertyId,
+              unit_number: this.propertyUnit.unitForm.unitNumber,
+              bedrooms: Number(this.propertyUnit.unitForm.bedrooms || 0),
+              bathrooms: Number(this.propertyUnit.unitForm.bathrooms || 0),
+              monthly_rent: Number(this.propertyUnit.unitForm.monthlyRent || 0),
+              status: 'vacant'
+            });
+
+          if (error) {
+            this.propertyUnit.error = error.message;
+            this.propertyUnit.saving = false;
+            return;
+          }
+
+          this.propertyUnit.unitForm = {
+            propertyId: this.propertyUnit.selectedPropertyId || '',
+            unitNumber: '',
+            bedrooms: 1,
+            bathrooms: 1,
+            monthlyRent: 0
+          };
+          this.propertyUnit.saving = false;
+          await this.loadPropertyUnitData();
+          await this.loadDashboardData();
+        },
+
+        async createLease(payload) {
+          const { data, error } = await supabaseClient
+            .from('leases')
+            .insert({
+              unit_id: payload.unitId,
+              tenant_id: payload.tenantId,
+              landlord_id: this.currentLandlordId(),
+              start_date: payload.startDate,
+              end_date: payload.endDate,
+              monthly_rent: Number(payload.monthlyRent || 0),
+              deposit_amount: Number(payload.depositAmount || 0),
+              deposit_paid: Boolean(payload.depositPaid),
+              lease_document_url: payload.leaseDocumentUrl || null,
+              status: 'active'
+            })
+            .select('id')
+            .single();
+
+          if (error) throw error;
+          return data;
+        },
+
+        openPropertyUnits(propertyId) {
+          this.propertyUnit.selectedPropertyId = propertyId;
+          this.propertyUnit.unitForm.propertyId = propertyId;
+          this.navigate('units');
+        },
+
+        filteredUnits() {
+          if (!this.propertyUnit.selectedPropertyId) return this.propertyUnit.units;
+          return this.propertyUnit.units.filter(unit => unit.property_id === this.propertyUnit.selectedPropertyId);
+        },
+
+        propertyName(propertyId) {
+          return this.propertyUnit.properties.find(property => property.id === propertyId)?.name || '-';
+        },
+
+        unitCountForProperty(propertyId) {
+          return this.propertyUnit.units.filter(unit => unit.property_id === propertyId).length;
+        },
+
+        async viewUnit(unit) {
+          this.propertyUnit.selectedUnit = unit;
+          this.propertyUnit.detailMode = '';
+          await this.loadUnitDetail(unit);
+        },
+
+        async loadUnitDetail(unit) {
+          this.propertyUnit.error = '';
+          const activeLease = this.propertyUnit.leases.find(lease => lease.unit_id === unit.id && lease.status === 'active') || null;
+          this.propertyUnit.currentLease = activeLease;
+
+          const [paymentsResult, maintenanceResult] = await Promise.all([
+            activeLease
+              ? supabaseClient.from('payments').select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, recorded_by, created_at').eq('lease_id', activeLease.id).order('payment_date', { ascending: false })
+              : Promise.resolve({ data: [], error: null }),
+            supabaseClient.from('maintenance_requests').select('id, unit_id, lease_id, description, status, priority, resolution_notes, created_at, resolved_at').eq('unit_id', unit.id).order('created_at', { ascending: false })
+          ]);
+
+          const firstError = paymentsResult.error || maintenanceResult.error;
+          if (firstError) this.propertyUnit.error = firstError.message;
+
+          this.propertyUnit.payments = paymentsResult.data || [];
+          this.propertyUnit.maintenance = maintenanceResult.data || [];
+        },
+
+        startEditSelectedUnit() {
+          const unit = this.propertyUnit.selectedUnit;
+          if (!unit) return;
+
+          this.propertyUnit.detailMode = 'edit';
+          this.propertyUnit.editUnitForm = {
+            unitNumber: unit.unit_number,
+            bedrooms: Number(unit.bedrooms || 0),
+            bathrooms: Number(unit.bathrooms || 0),
+            monthlyRent: Number(unit.monthly_rent || 0)
+          };
+        },
+
+        async saveSelectedUnitEdit() {
+          const unit = this.propertyUnit.selectedUnit;
+          if (!unit) return;
+
+          const { error } = await supabaseClient
+            .from('units')
+            .update({
+              unit_number: this.propertyUnit.editUnitForm.unitNumber,
+              bedrooms: Number(this.propertyUnit.editUnitForm.bedrooms || 0),
+              bathrooms: Number(this.propertyUnit.editUnitForm.bathrooms || 0),
+              monthly_rent: Number(this.propertyUnit.editUnitForm.monthlyRent || 0)
+            })
+            .eq('id', unit.id);
+
+          if (error) {
+            this.propertyUnit.error = error.message;
+            return;
+          }
+
+          this.propertyUnit.detailMode = '';
+          await this.loadPropertyUnitData();
+        },
+
+        async prepareAssignTenant(unit) {
+          if (!unit) return;
+          this.propertyUnit.selectedUnit = unit;
+          await this.loadUnitDetail(unit);
+          this.propertyUnit.detailMode = 'assign';
+          this.propertyUnit.assignForm = {
+            tenantId: '',
+            startDate: new Date().toISOString().slice(0, 10),
+            endDate: '',
+            rent: Number(unit.monthly_rent || 0),
+            depositAmount: 0,
+            depositPaid: false
+          };
+        },
+
+        unassignedTenants() {
+          const activeTenantIds = new Set(this.propertyUnit.leases.filter(lease => lease.status === 'active').map(lease => lease.tenant_id));
+          return this.propertyUnit.tenants.filter(tenant => !activeTenantIds.has(tenant.id));
+        },
+
+        async assignTenantToSelectedUnit() {
+          const unit = this.propertyUnit.selectedUnit;
+          if (!unit) return;
+
+          try {
+            if (this.propertyUnit.currentLease) {
+              const { error: updateError } = await supabaseClient
+                .from('leases')
+                .update({ status: 'terminated' })
+                .eq('id', this.propertyUnit.currentLease.id);
+
+              if (updateError) throw updateError;
+            }
+
+            await this.createLease({
+              unitId: unit.id,
+              tenantId: this.propertyUnit.assignForm.tenantId,
+              startDate: this.propertyUnit.assignForm.startDate,
+              endDate: this.propertyUnit.assignForm.endDate,
+              monthlyRent: this.propertyUnit.assignForm.rent,
+              depositAmount: this.propertyUnit.assignForm.depositAmount,
+              depositPaid: this.propertyUnit.assignForm.depositPaid
+            });
+
+            this.propertyUnit.detailMode = '';
+            await this.loadPropertyUnitData();
+            await this.loadDashboardData();
+          } catch (error) {
+            this.propertyUnit.error = error.message;
+          }
+        },
+
+        prepareUnitPayment() {
+          if (!this.propertyUnit.currentLease) {
+            this.propertyUnit.error = 'A unit needs an active lease before a payment can be logged.';
+            return;
+          }
+
+          this.propertyUnit.detailMode = 'payment';
+          this.propertyUnit.paymentForm = {
+            amount: Number(this.propertyUnit.currentLease.monthly_rent || 0),
+            date: new Date().toISOString().slice(0, 10),
+            method: 'cash',
+            notes: ''
+          };
+        },
+
+        async logPaymentForSelectedUnit() {
+          if (!this.propertyUnit.currentLease) return;
+
+          const { error } = await supabaseClient
+            .from('payments')
+            .insert({
+              lease_id: this.propertyUnit.currentLease.id,
+              submission_id: null,
+              amount_paid: Number(this.propertyUnit.paymentForm.amount || 0),
+              payment_date: this.propertyUnit.paymentForm.date,
+              payment_method: this.propertyUnit.paymentForm.method,
+              notes: this.propertyUnit.paymentForm.notes || null,
+              recorded_by: this.profile.id
+            });
+
+          if (error) {
+            this.propertyUnit.error = error.message;
+            return;
+          }
+
+          this.propertyUnit.detailMode = '';
+          await this.loadUnitDetail(this.propertyUnit.selectedUnit);
+          await this.loadDashboardData();
+        },
+
+        maintenanceBadgeClass(status) {
+          const classes = {
+            open: 'bg-yellow-100 text-amber-700',
+            in_progress: 'bg-yellow-100 text-amber-700',
+            resolved: 'bg-emerald-100 text-emerald-700'
+          };
+          return classes[status] || 'bg-slate-100 text-slate-600';
+        },
+
         async signIn() {
           this.authError = '';
           this.successMessage = '';
@@ -1639,6 +2256,10 @@
 
           if (page === 'dashboard' && this.currentShell === 'app') {
             await this.loadDashboardData();
+          }
+
+          if ((page === 'properties' || page === 'units') && this.currentShell === 'app') {
+            await this.loadPropertyUnitData();
           }
         },
 
