@@ -686,10 +686,19 @@
                     </template>
 
                     <form x-show="canManageProperties()" class="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]" @submit.prevent="addProperty">
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Property name" x-model.trim="propertyUnit.propertyForm.name" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Address" x-model.trim="propertyUnit.propertyForm.address" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="City" x-model.trim="propertyUnit.propertyForm.city" required>
-                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="propertyUnit.saving">Add Property</button>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Property name</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.propertyForm.name" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Address</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.propertyForm.address" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">City</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.propertyForm.city" required>
+                      </label>
+                      <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="propertyUnit.saving">Add Property</button>
                     </form>
                   </section>
 
@@ -733,17 +742,32 @@
                     </template>
 
                     <form x-show="canManageProperties()" class="grid gap-3 lg:grid-cols-[1.2fr_0.9fr_0.7fr_0.7fr_0.9fr_auto]" @submit.prevent="addUnit">
-                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.unitForm.propertyId" required>
-                        <option value="">Property</option>
-                        <template x-for="property in propertyUnit.properties" :key="property.id">
-                          <option :value="property.id" x-text="property.name"></option>
-                        </template>
-                      </select>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Unit number" x-model.trim="propertyUnit.unitForm.unitNumber" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" placeholder="Beds" x-model.number="propertyUnit.unitForm.bedrooms" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" placeholder="Baths" x-model.number="propertyUnit.unitForm.bathrooms" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Monthly rent" x-model.number="propertyUnit.unitForm.monthlyRent" required>
-                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="propertyUnit.saving">Add Unit</button>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Property</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.unitForm.propertyId" required>
+                          <option value="">Select property</option>
+                          <template x-for="property in propertyUnit.properties" :key="property.id">
+                            <option :value="property.id" x-text="property.name"></option>
+                          </template>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Unit number</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.unitForm.unitNumber" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Bedrooms</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.unitForm.bedrooms" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Bathrooms</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.unitForm.bathrooms" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Monthly rent</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.unitForm.monthlyRent" required>
+                      </label>
+                      <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="propertyUnit.saving">Add Unit</button>
                     </form>
                   </section>
 
@@ -833,46 +857,85 @@
 
                     <template x-if="propertyUnit.detailMode === 'edit'">
                       <form class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]" @submit.prevent="saveSelectedUnitEdit">
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.editUnitForm.unitNumber" required>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.editUnitForm.bedrooms" required>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.editUnitForm.bathrooms" required>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.editUnitForm.monthlyRent" required>
-                        <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Save Unit</button>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Unit number</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.editUnitForm.unitNumber" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Bedrooms</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.editUnitForm.bedrooms" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Bathrooms</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.5" x-model.number="propertyUnit.editUnitForm.bathrooms" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Monthly rent</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.editUnitForm.monthlyRent" required>
+                        </label>
+                        <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Save Unit</button>
                       </form>
                     </template>
 
                     <template x-if="propertyUnit.detailMode === 'assign'">
                       <form class="mt-5 grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr_0.9fr_0.9fr_0.9fr_auto]" @submit.prevent="assignTenantToSelectedUnit">
-                        <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.assignForm.tenantId" required>
-                          <option value="">Unassigned tenant</option>
-                          <template x-for="tenant in unassignedTenants()" :key="tenant.id">
-                            <option :value="tenant.id" x-text="tenant.full_name"></option>
-                          </template>
-                        </select>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.assignForm.startDate" required>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.assignForm.endDate" required>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.assignForm.rent" required>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Deposit" x-model.number="propertyUnit.assignForm.depositAmount">
-                        <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Tenant</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.assignForm.tenantId" required>
+                            <option value="">Unassigned tenant</option>
+                            <template x-for="tenant in unassignedTenants()" :key="tenant.id">
+                              <option :value="tenant.id" x-text="tenant.full_name"></option>
+                            </template>
+                          </select>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Start date</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.assignForm.startDate" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">End date</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.assignForm.endDate" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Monthly rent</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.assignForm.rent" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Deposit</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="propertyUnit.assignForm.depositAmount">
+                        </label>
+                        <label class="flex self-end items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
                           <input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="propertyUnit.assignForm.depositPaid">
                           Deposit paid
                         </label>
-                        <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Assign</button>
+                        <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Assign</button>
                       </form>
                     </template>
 
                     <template x-if="propertyUnit.detailMode === 'payment'">
                       <form class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto]" @submit.prevent="logPaymentForSelectedUnit">
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" placeholder="Amount" x-model.number="propertyUnit.paymentForm.amount" required>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.paymentForm.date" required>
-                        <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.paymentForm.method" required>
-                          <option value="cash">Cash</option>
-                          <option value="bank_transfer">Bank Transfer</option>
-                          <option value="mobile_money">Mobile Money</option>
-                          <option value="other">Other</option>
-                        </select>
-                        <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Notes" x-model.trim="propertyUnit.paymentForm.notes">
-                        <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Log Payment</button>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Amount</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" x-model.number="propertyUnit.paymentForm.amount" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Payment date</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="propertyUnit.paymentForm.date" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Method</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.paymentForm.method" required>
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Notes</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.paymentForm.notes">
+                        </label>
+                        <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Log Payment</button>
                       </form>
                     </template>
 
@@ -938,11 +1001,23 @@
                     </template>
 
                     <form x-show="profile?.role === 'landlord'" class="grid gap-3 lg:grid-cols-[1fr_0.9fr_1fr_0.8fr_auto]" @submit.prevent="addTenantInvite">
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Full name" x-model.trim="tenantLease.tenantForm.fullName" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="tel" placeholder="Phone" x-model.trim="tenantLease.tenantForm.phone">
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="email" placeholder="Email" x-model.trim="tenantLease.tenantForm.email" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="ID number" x-model.trim="tenantLease.tenantForm.idNumber">
-                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving">Add Tenant</button>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Full name</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="tenantLease.tenantForm.fullName" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Phone</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="tel" x-model.trim="tenantLease.tenantForm.phone">
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Email</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="email" x-model.trim="tenantLease.tenantForm.email" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">ID number</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="tenantLease.tenantForm.idNumber">
+                      </label>
+                      <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving">Add Tenant</button>
                     </form>
 
                     <template x-if="tenantLease.generatedInviteLink">
@@ -1048,23 +1123,44 @@
                     </template>
 
                     <form x-show="canManageLeases()" class="grid gap-3 xl:grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]" @submit.prevent="addLeaseFromPage">
-                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.tenantId" required>
-                        <option value="">Tenant</option>
-                        <template x-for="tenant in tenantsAvailableForLease()" :key="tenant.id"><option :value="tenant.id" x-text="tenant.full_name"></option></template>
-                      </select>
-                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.propertyId" required>
-                        <option value="">Property</option>
-                        <template x-for="property in tenantLease.properties" :key="property.id"><option :value="property.id" x-text="property.name"></option></template>
-                      </select>
-                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.unitId" @change="prefillLeaseRent" required>
-                        <option value="">Vacant unit</option>
-                        <template x-for="unit in vacantUnitsForLeaseForm()" :key="unit.id"><option :value="unit.id" x-text="unit.unit_number"></option></template>
-                      </select>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="tenantLease.leaseForm.startDate" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="tenantLease.leaseForm.endDate" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Rent" x-model.number="tenantLease.leaseForm.rent" required>
-                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Deposit" x-model.number="tenantLease.leaseForm.depositAmount">
-                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving">Add Lease</button>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Tenant</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.tenantId" required>
+                          <option value="">Select tenant</option>
+                          <template x-for="tenant in tenantsAvailableForLease()" :key="tenant.id"><option :value="tenant.id" x-text="tenant.full_name"></option></template>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Property</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.propertyId" required>
+                          <option value="">Select property</option>
+                          <template x-for="property in tenantLease.properties" :key="property.id"><option :value="property.id" x-text="property.name"></option></template>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Vacant unit</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.unitId" @change="prefillLeaseRent" required>
+                          <option value="">Select unit</option>
+                          <template x-for="unit in vacantUnitsForLeaseForm()" :key="unit.id"><option :value="unit.id" x-text="unit.unit_number"></option></template>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Start date</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="tenantLease.leaseForm.startDate" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">End date</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="tenantLease.leaseForm.endDate" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Rent</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="tenantLease.leaseForm.rent" required>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Deposit</span>
+                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="tenantLease.leaseForm.depositAmount">
+                      </label>
+                      <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving">Add Lease</button>
                     </form>
                     <label x-show="canManageLeases()" class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
                       <input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="tenantLease.leaseForm.depositPaid">
