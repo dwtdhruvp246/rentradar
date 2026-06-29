@@ -846,7 +846,7 @@
                             <p><span class="text-slate-500">Lease:</span> <span class="font-medium text-slate-900" x-text="`${formatDate(propertyUnit.currentLease.start_date)} - ${formatDate(propertyUnit.currentLease.end_date)}`"></span></p>
                             <p><span class="text-slate-500">Rent:</span> <span class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.currentLease.monthly_rent)"></span></p>
                             <p><span class="text-slate-500">Deposit:</span> <span class="font-medium text-slate-900" x-text="propertyUnit.currentLease.deposit_paid ? 'Paid' : 'Unpaid'"></span></p>
-                            <a x-show="propertyUnit.currentLease.lease_document_url" class="text-sm font-semibold text-emerald-700 underline" :href="propertyUnit.currentLease.lease_document_url" target="_blank" rel="noreferrer">Download Lease Document</a>
+                            <button x-show="leaseDocumentPath(propertyUnit.currentLease)" class="text-sm font-semibold text-emerald-700 underline" type="button" @click="openLeaseDocument(propertyUnit.currentLease)">Download Lease Document</button>
                           </div>
                         </template>
                         <template x-if="!propertyUnit.currentLease">
@@ -1130,7 +1130,7 @@
                       <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="tenantLease.error"></div>
                     </template>
 
-                    <form x-show="canManageLeases()" class="grid gap-3 xl:grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]" @submit.prevent="addLeaseFromPage">
+                    <form x-show="canManageLeases()" class="grid gap-3 xl:grid-cols-4" @submit.prevent="addLeaseFromPage">
                       <label class="block">
                         <span class="mb-2 block text-sm font-medium text-slate-700">Tenant</span>
                         <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.tenantId" required>
@@ -1168,6 +1168,11 @@
                         <span class="mb-2 block text-sm font-medium text-slate-700">Deposit</span>
                         <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" x-model.number="tenantLease.leaseForm.depositAmount">
                       </label>
+                      <label class="block xl:col-span-2">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Lease agreement PDF</span>
+                        <input x-ref="leaseDocumentInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="application/pdf,.pdf" @change="handleLeaseDocumentSelection($event, 'new')">
+                        <span class="mt-1 block text-xs text-slate-500">PDF only, max 20 MB.</span>
+                      </label>
                       <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving">Add Lease</button>
                     </form>
                     <label x-show="canManageLeases()" class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -1179,11 +1184,11 @@
                   <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
                     <div class="overflow-x-auto">
                       <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
-                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Tenant</th><th class="px-4 py-3">Property</th><th class="px-4 py-3">Unit</th><th class="px-4 py-3">Dates</th><th class="px-4 py-3">Rent</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th></tr></thead>
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Tenant</th><th class="px-4 py-3">Property</th><th class="px-4 py-3">Unit</th><th class="px-4 py-3">Dates</th><th class="px-4 py-3">Rent</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Document</th><th class="px-4 py-3">Actions</th></tr></thead>
                         <tbody class="divide-y divide-slate-200">
-                          <template x-if="!tenantLease.loading && tenantLease.leases.length === 0"><tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No leases yet.</td></tr></template>
+                          <template x-if="!tenantLease.loading && tenantLease.leases.length === 0"><tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="8">No leases yet.</td></tr></template>
                           <template x-for="lease in tenantLease.leases" :key="lease.id">
-                            <tr class="odd:bg-white even:bg-slate-50/60"><td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant?.full_name || '-'"></td><td class="px-4 py-3" x-text="leasePropertyLabel(lease)"></td><td class="px-4 py-3" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewLease(lease)">View</button></td></tr>
+                            <tr class="odd:bg-white even:bg-slate-50/60"><td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant?.full_name || '-'"></td><td class="px-4 py-3" x-text="leasePropertyLabel(lease)"></td><td class="px-4 py-3" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3" x-text="leaseDocumentLabel(lease)"></td><td class="px-4 py-3"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewLease(lease)">View</button></td></tr>
                           </template>
                         </tbody>
                       </table>
@@ -1192,11 +1197,20 @@
 
                   <section x-show="tenantLease.selectedLease" class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                     <div class="mb-5"><h2 class="text-lg font-bold text-slate-900">Lease Detail</h2><p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedLease ? `${tenantLease.selectedLease.tenant?.full_name || '-'} - ${leaseUnitLabel(tenantLease.selectedLease)}` : ''"></p></div>
-                    <div class="grid gap-4 lg:grid-cols-3">
+                    <div class="grid gap-4 lg:grid-cols-4">
                       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Dates</p><p class="mt-2 font-semibold text-slate-900" x-text="tenantLease.selectedLease ? `${formatDate(tenantLease.selectedLease.start_date)} - ${formatDate(tenantLease.selectedLease.end_date)}` : '-'"></p></div>
                       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Monthly Rent</p><p class="mt-2 font-semibold text-slate-900" x-text="formatCurrency(tenantLease.selectedLease?.monthly_rent)"></p></div>
                       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Deposit</p><p class="mt-2 font-semibold text-slate-900" x-text="`${formatCurrency(tenantLease.selectedLease?.deposit_amount)} - ${tenantLease.selectedLease?.deposit_paid ? 'Paid' : 'Unpaid'}`"></p></div>
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Agreement</p><button x-show="leaseDocumentPath(tenantLease.selectedLease)" class="mt-2 text-sm font-semibold text-emerald-700 underline" type="button" @click="openLeaseDocument(tenantLease.selectedLease)">Download PDF</button><p x-show="!leaseDocumentPath(tenantLease.selectedLease)" class="mt-2 text-sm font-semibold text-slate-900">No PDF uploaded</p></div>
                     </div>
+                    <form x-show="canManageLeases()" class="mt-5 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[1fr_auto]" @submit.prevent="uploadDocumentForSelectedLease">
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Upload or replace lease agreement</span>
+                        <input x-ref="selectedLeaseDocumentInput" class="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="application/pdf,.pdf" @change="handleLeaseDocumentSelection($event, 'selected')">
+                        <span class="mt-1 block text-xs text-slate-500">PDF only, max 20 MB.</span>
+                      </label>
+                      <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving || !tenantLease.selectedLeaseDocumentFile">Save PDF</button>
+                    </form>
                     <section class="mt-6 overflow-hidden rounded-lg border border-slate-200">
                       <div class="border-b border-slate-200 bg-slate-50 px-4 py-3"><h3 class="text-sm font-semibold text-slate-900">Payment History</h3></div>
                       <div class="overflow-x-auto">
@@ -1995,6 +2009,7 @@
                     <div class="flex justify-between gap-4"><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900" x-text="titleCase(tenant.activeLease?.status || 'none')"></dd></div>
                     <div class="flex justify-between gap-4"><dt class="text-slate-500">Deposit</dt><dd class="font-medium text-slate-900" x-text="`${formatCurrency(tenant.activeLease?.deposit_amount)} - ${tenant.activeLease?.deposit_paid ? 'Paid' : 'Unpaid'}`"></dd></div>
                     <div class="flex justify-between gap-4"><dt class="text-slate-500">Lease Ends</dt><dd class="font-medium text-slate-900" x-text="formatDate(tenant.activeLease?.end_date)"></dd></div>
+                    <div class="flex justify-between gap-4"><dt class="text-slate-500">Agreement</dt><dd><button x-show="leaseDocumentPath(tenant.activeLease)" class="font-semibold text-emerald-700 underline" type="button" @click="openLeaseDocument(tenant.activeLease)">Download PDF</button><span x-show="!leaseDocumentPath(tenant.activeLease)" class="font-medium text-slate-900">Not uploaded</span></dd></div>
                   </dl>
                 </article>
               </section>
@@ -2205,6 +2220,8 @@
     const SUPABASE_URL = 'https://rmbvgtaadkvbsasbvdmb.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtYnZndGFhZGt2YnNhc2J2ZG1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NTQ1NjIsImV4cCI6MjA5ODIzMDU2Mn0.kMhXDI85TVAsw_Mb-PO5iaSHipG3vLFmM7DF3TUnf00';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const LEASE_DOCUMENT_BUCKET = 'lease-documents';
+    const MAX_LEASE_DOCUMENT_SIZE = 20 * 1024 * 1024;
 
     function rentRadarApp() {
       return {
@@ -2478,6 +2495,7 @@
           selectedTenantPayments: [],
           selectedLease: null,
           selectedLeasePayments: [],
+          selectedLeaseDocumentFile: null,
           tenantForm: {
             fullName: '',
             phone: '',
@@ -2492,7 +2510,8 @@
             endDate: '',
             rent: 0,
             depositAmount: 0,
-            depositPaid: false
+            depositPaid: false,
+            documentFile: null
           }
         },
 
@@ -3336,7 +3355,7 @@
               ? supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_accepted, created_at').order('full_name', { ascending: true })
               : Promise.resolve({ data: [], error: null }),
             canLoadLeases
-              ? supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, status, created_at, tenants(id, full_name, email, phone)').order('end_date', { ascending: true })
+              ? supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone)').order('end_date', { ascending: true })
               : Promise.resolve({ data: [], error: null })
           ]);
 
@@ -3438,9 +3457,14 @@
               deposit_amount: Number(payload.depositAmount || 0),
               deposit_paid: Boolean(payload.depositPaid),
               lease_document_url: payload.leaseDocumentUrl || null,
+              lease_document_path: payload.leaseDocumentPath || null,
+              lease_document_name: payload.leaseDocumentName || null,
+              lease_document_size: payload.leaseDocumentSize || null,
+              lease_document_uploaded_by: payload.leaseDocumentUploadedBy || null,
+              lease_document_uploaded_at: payload.leaseDocumentUploadedAt || null,
               status: 'active'
             })
-            .select('id')
+            .select('id, landlord_id')
             .single();
 
           if (error) throw error;
@@ -4433,7 +4457,7 @@
 
           const { data: leases, error: leaseError } = await supabaseClient
             .from('leases')
-            .select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, status, created_at, units(id, unit_number, property_id, properties(id, name, address, city))')
+            .select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, units(id, unit_number, property_id, properties(id, name, address, city))')
             .eq('tenant_id', tenantRow.id)
             .order('created_at', { ascending: false });
 
@@ -4617,7 +4641,7 @@
             supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').order('name', { ascending: true }),
             supabaseClient.from('units').select('id, property_id, unit_number, bedrooms, bathrooms, monthly_rent, status, properties(id, name, address, city)').order('unit_number', { ascending: true }),
             supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_token, invite_accepted, created_at').order('created_at', { ascending: false }),
-            supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, status, created_at, tenants(id, full_name, email, phone), units(id, unit_number, property_id, properties(id, name, address, city))').order('created_at', { ascending: false })
+            supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone), units(id, unit_number, property_id, properties(id, name, address, city))').order('created_at', { ascending: false })
           ]);
 
           const [propertiesResult, unitsResult, tenantsResult, leasesResult] = results;
@@ -4718,6 +4742,154 @@
           return property?.name || '-';
         },
 
+        leaseDocumentPath(lease) {
+          return lease?.lease_document_path || lease?.lease_document_url || '';
+        },
+
+        leaseDocumentLabel(lease) {
+          if (!this.leaseDocumentPath(lease)) return 'No PDF';
+          return lease?.lease_document_name || 'PDF uploaded';
+        },
+
+        setLeaseDocumentError(message) {
+          if (this.currentShell === 'tenant') {
+            this.tenant.error = message;
+          } else if (this.currentPage === 'leases') {
+            this.tenantLease.error = message;
+          } else {
+            this.propertyUnit.error = message;
+          }
+        },
+
+        validateLeaseDocumentFile(file) {
+          if (!file) return;
+          const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          if (!isPdf) throw new Error('Lease agreement must be a PDF file.');
+          if (file.size > MAX_LEASE_DOCUMENT_SIZE) throw new Error('Lease agreement PDF must be 20 MB or smaller.');
+        },
+
+        handleLeaseDocumentSelection(event, target) {
+          const file = event.target.files?.[0] || null;
+          this.tenantLease.error = '';
+
+          try {
+            if (file) this.validateLeaseDocumentFile(file);
+            if (target === 'selected') {
+              this.tenantLease.selectedLeaseDocumentFile = file;
+            } else {
+              this.tenantLease.leaseForm.documentFile = file;
+            }
+          } catch (error) {
+            event.target.value = '';
+            if (target === 'selected') {
+              this.tenantLease.selectedLeaseDocumentFile = null;
+            } else {
+              this.tenantLease.leaseForm.documentFile = null;
+            }
+            this.tenantLease.error = error.message;
+          }
+        },
+
+        sanitizeLeaseDocumentName(fileName) {
+          const cleaned = String(fileName || 'lease-agreement.pdf')
+            .replace(/[^a-zA-Z0-9._-]/g, '-')
+            .replace(/-+/g, '-')
+            .slice(0, 120);
+          return cleaned.toLowerCase().endsWith('.pdf') ? cleaned : `${cleaned}.pdf`;
+        },
+
+        async uploadLeaseDocument(lease, file) {
+          this.validateLeaseDocumentFile(file);
+          const landlordId = lease.landlord_id || this.currentLandlordId();
+          const safeName = this.sanitizeLeaseDocumentName(file.name);
+          const objectPath = `${landlordId}/${lease.id}/${Date.now()}-${this.generateSecureToken().slice(0, 16)}-${safeName}`;
+          const previousPath = this.leaseDocumentPath(lease);
+
+          const { error: uploadError } = await supabaseClient.storage
+            .from(LEASE_DOCUMENT_BUCKET)
+            .upload(objectPath, file, {
+              cacheControl: '3600',
+              contentType: 'application/pdf',
+              upsert: false
+            });
+
+          if (uploadError) throw uploadError;
+
+          const documentFields = {
+            lease_document_url: objectPath,
+            lease_document_path: objectPath,
+            lease_document_name: file.name,
+            lease_document_size: file.size,
+            lease_document_uploaded_by: this.profile?.id || null,
+            lease_document_uploaded_at: new Date().toISOString()
+          };
+
+          const { data, error: updateError } = await supabaseClient
+            .from('leases')
+            .update(documentFields)
+            .eq('id', lease.id)
+            .select('id, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at')
+            .single();
+
+          if (updateError) throw updateError;
+
+          if (previousPath && previousPath !== objectPath && !/^https?:\/\//i.test(previousPath)) {
+            await supabaseClient.storage.from(LEASE_DOCUMENT_BUCKET).remove([previousPath]);
+          }
+
+          return data;
+        },
+
+        async openLeaseDocument(lease) {
+          const documentPath = this.leaseDocumentPath(lease);
+          if (!documentPath) return;
+
+          if (/^https?:\/\//i.test(documentPath)) {
+            window.open(documentPath, '_blank', 'noopener,noreferrer');
+            return;
+          }
+
+          const documentWindow = window.open('', '_blank');
+          if (documentWindow) documentWindow.opener = null;
+
+          const { data, error } = await supabaseClient.storage
+            .from(LEASE_DOCUMENT_BUCKET)
+            .createSignedUrl(documentPath, 300, {
+              download: lease?.lease_document_name || 'lease-agreement.pdf'
+            });
+
+          if (error) {
+            if (documentWindow) documentWindow.close();
+            this.setLeaseDocumentError(error.message);
+            return;
+          }
+
+          if (documentWindow) {
+            documentWindow.location.href = data.signedUrl;
+          } else {
+            window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+          }
+        },
+
+        async uploadDocumentForSelectedLease() {
+          if (!this.tenantLease.selectedLease || !this.tenantLease.selectedLeaseDocumentFile) return;
+
+          this.tenantLease.error = '';
+          this.tenantLease.saving = true;
+
+          try {
+            await this.uploadLeaseDocument(this.tenantLease.selectedLease, this.tenantLease.selectedLeaseDocumentFile);
+            this.tenantLease.selectedLeaseDocumentFile = null;
+            if (this.$refs.selectedLeaseDocumentInput) this.$refs.selectedLeaseDocumentInput.value = '';
+            await this.loadTenantLeaseData();
+            await this.loadPropertyUnitData();
+          } catch (error) {
+            this.tenantLease.error = error.message;
+          }
+
+          this.tenantLease.saving = false;
+        },
+
         async viewTenant(tenant) {
           this.tenantLease.selectedTenant = tenant;
           this.tenantLease.selectedTenantLeases = this.tenantLease.leases.filter(lease => lease.tenant_id === tenant.id);
@@ -4764,7 +4936,9 @@
           this.tenantLease.saving = true;
 
           try {
-            await this.createLease({
+            const documentFile = this.tenantLease.leaseForm.documentFile;
+            let uploadWarning = '';
+            const lease = await this.createLease({
               unitId: this.tenantLease.leaseForm.unitId,
               tenantId: this.tenantLease.leaseForm.tenantId,
               startDate: this.tenantLease.leaseForm.startDate,
@@ -4774,6 +4948,14 @@
               depositPaid: this.tenantLease.leaseForm.depositPaid
             });
 
+            if (documentFile) {
+              try {
+                await this.uploadLeaseDocument(lease, documentFile);
+              } catch (error) {
+                uploadWarning = `Lease was created, but the PDF upload failed: ${error.message}`;
+              }
+            }
+
             this.tenantLease.leaseForm = {
               tenantId: '',
               propertyId: '',
@@ -4782,11 +4964,14 @@
               endDate: '',
               rent: 0,
               depositAmount: 0,
-              depositPaid: false
+              depositPaid: false,
+              documentFile: null
             };
+            if (this.$refs.leaseDocumentInput) this.$refs.leaseDocumentInput.value = '';
             await this.loadTenantLeaseData();
             await this.loadPropertyUnitData();
             await this.loadDashboardData();
+            if (uploadWarning) this.tenantLease.error = uploadWarning;
           } catch (error) {
             this.tenantLease.error = error.message;
           }
@@ -4796,6 +4981,8 @@
 
         async viewLease(lease) {
           this.tenantLease.selectedLease = lease;
+          this.tenantLease.selectedLeaseDocumentFile = null;
+          if (this.$refs.selectedLeaseDocumentInput) this.$refs.selectedLeaseDocumentInput.value = '';
           const { data, error } = await supabaseClient
             .from('payments')
             .select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, created_at')
