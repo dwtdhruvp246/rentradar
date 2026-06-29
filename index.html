@@ -822,7 +822,7 @@
                       </div>
                       <div class="flex flex-wrap gap-2">
                         <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="startEditSelectedUnit">Edit Unit</button>
-                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="prepareUnitPayment">Log Payment</button>
+                        <button x-show="canVerifyPayments()" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="prepareUnitPayment">Log Payment</button>
                         <button x-show="canManageLeases()" class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="prepareAssignTenant(propertyUnit.selectedUnit)">Change Tenant</button>
                       </div>
                     </div>
@@ -947,14 +947,22 @@
                         <div class="overflow-x-auto">
                           <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
                             <thead class="bg-white text-xs uppercase tracking-wide text-slate-500">
-                              <tr><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Method</th></tr>
+                              <tr><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Method</th><th class="px-4 py-3">Actions</th></tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200">
                               <template x-if="propertyUnit.payments.length === 0">
-                                <tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="4">No verified payments.</td></tr>
+                                <tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="5">No verified payments.</td></tr>
                               </template>
                               <template x-for="payment in propertyUnit.payments" :key="payment.id">
-                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="payment.receipt_number || '-'"></td><td class="px-4 py-3" x-text="formatCurrency(payment.amount_paid)"></td><td class="px-4 py-3" x-text="formatDate(payment.payment_date)"></td><td class="px-4 py-3" x-text="titleCase(payment.payment_method)"></td></tr>
+                                <tr>
+                                  <td class="px-4 py-3 font-semibold text-slate-900" x-text="payment.receipt_number || '-'"></td>
+                                  <td class="px-4 py-3" x-text="formatCurrency(payment.amount_paid)"></td>
+                                  <td class="px-4 py-3" x-text="formatDate(payment.payment_date)"></td>
+                                  <td class="px-4 py-3" x-text="titleCase(payment.payment_method)"></td>
+                                  <td class="px-4 py-3">
+                                    <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="downloadReceipt(payment, propertyUnit.currentLease)">Download Receipt</button>
+                                  </td>
+                                </tr>
                               </template>
                             </tbody>
                           </table>
@@ -1205,6 +1213,193 @@
                 </div>
               </template>
 
+              <template x-if="currentPage === 'payments'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Payments</h1>
+                        <p class="mt-1 text-sm text-slate-500">Review tenant submissions, verify rent, and download receipts.</p>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        <button x-show="canVerifyPayments()" class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="openManualPaymentModal">Log Payment Manually</button>
+                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadPaymentsData">Refresh</button>
+                      </div>
+                    </div>
+
+                    <div class="mt-5 flex flex-wrap gap-2 border-b border-slate-200">
+                      <button class="border-b-2 px-3 py-2 text-sm font-semibold" type="button" :class="payments.activeTab === 'pending' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-900'" @click="payments.activeTab = 'pending'">Pending Submissions</button>
+                      <button class="border-b-2 px-3 py-2 text-sm font-semibold" type="button" :class="payments.activeTab === 'verified' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-900'" @click="payments.activeTab = 'verified'">Verified Payments</button>
+                    </div>
+
+                    <template x-if="payments.error">
+                      <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="payments.error"></div>
+                    </template>
+                  </section>
+
+                  <section x-show="payments.activeTab === 'pending'" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th class="px-4 py-3 font-semibold">Tenant</th>
+                            <th class="px-4 py-3 font-semibold">Unit</th>
+                            <th class="px-4 py-3 font-semibold">Amount Claimed</th>
+                            <th class="px-4 py-3 font-semibold">Date</th>
+                            <th class="px-4 py-3 font-semibold">Method</th>
+                            <th class="px-4 py-3 font-semibold">Reference</th>
+                            <th class="px-4 py-3 font-semibold">Proof</th>
+                            <th class="px-4 py-3 font-semibold">Submitted</th>
+                            <th class="px-4 py-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                          <template x-if="!payments.loading && payments.pendingSubmissions.length === 0">
+                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="9">No pending payment submissions.</td></tr>
+                          </template>
+                          <template x-for="submission in payments.pendingSubmissions" :key="submission.id">
+                            <tr class="odd:bg-white even:bg-slate-50/60">
+                              <td class="px-4 py-3 font-semibold text-slate-900" x-text="submission.tenant?.full_name || '-'"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="paymentUnitLabel(submission)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatCurrency(submission.amount_claimed)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatDate(submission.payment_date)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="titleCase(submission.payment_method)"></td>
+                              <td class="max-w-48 truncate px-4 py-3 text-slate-700" x-text="submission.reference_note || '-'"></td>
+                              <td class="px-4 py-3">
+                                <a x-show="submission.proof_image_url" :href="submission.proof_image_url" target="_blank" rel="noreferrer" class="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                                  <img class="h-full w-full object-cover" :src="submission.proof_image_url" alt="Payment proof">
+                                </a>
+                                <span x-show="!submission.proof_image_url" class="text-slate-400">-</span>
+                              </td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatDate(submission.created_at)"></td>
+                              <td class="px-4 py-3">
+                                <div class="flex flex-wrap gap-2">
+                                  <button x-show="canVerifyPayments()" class="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="button" @click="approvePaymentSubmission(submission)" :disabled="payments.saving">Approve</button>
+                                  <button x-show="canVerifyPayments()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60" type="button" @click="openRejectPaymentModal(submission)" :disabled="payments.saving">Reject</button>
+                                  <span x-show="!canVerifyPayments()" class="text-xs font-medium text-slate-500">View only</span>
+                                </div>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section x-show="payments.activeTab === 'verified'" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th class="px-4 py-3 font-semibold">Receipt</th>
+                            <th class="px-4 py-3 font-semibold">Tenant</th>
+                            <th class="px-4 py-3 font-semibold">Unit</th>
+                            <th class="px-4 py-3 font-semibold">Amount</th>
+                            <th class="px-4 py-3 font-semibold">Date</th>
+                            <th class="px-4 py-3 font-semibold">Method</th>
+                            <th class="px-4 py-3 font-semibold">Recorded By</th>
+                            <th class="px-4 py-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                          <template x-if="!payments.loading && payments.verifiedPayments.length === 0">
+                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="8">No verified payments.</td></tr>
+                          </template>
+                          <template x-for="payment in payments.verifiedPayments" :key="payment.id">
+                            <tr class="odd:bg-white even:bg-slate-50/60">
+                              <td class="px-4 py-3 font-semibold text-slate-900" x-text="payment.receipt_number || '-'"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="payment.lease?.tenant?.full_name || '-'"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="paymentUnitLabel(payment)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatCurrency(payment.amount_paid)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatDate(payment.payment_date)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="titleCase(payment.payment_method)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="payment.recordedByName || '-'"></td>
+                              <td class="px-4 py-3">
+                                <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="downloadReceipt(payment)">Download Receipt</button>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <div x-show="payments.modal === 'manual'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+                    <section class="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h2 class="text-lg font-bold text-slate-900">Log Payment Manually</h2>
+                          <p class="mt-1 text-sm text-slate-500">Record a verified rent payment against an active lease.</p>
+                        </div>
+                        <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button" @click="closePaymentModal" aria-label="Close modal">
+                          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                        </button>
+                      </div>
+                      <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="logManualPayment">
+                        <label class="block sm:col-span-2">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Lease</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="payments.manualForm.leaseId" @change="prefillManualPaymentAmount" required>
+                            <option value="">Select active lease</option>
+                            <template x-for="lease in payments.leases" :key="lease.id">
+                              <option :value="lease.id" x-text="manualLeaseLabel(lease)"></option>
+                            </template>
+                          </select>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Amount</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" x-model.number="payments.manualForm.amount" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Payment date</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="payments.manualForm.date" required>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Method</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="payments.manualForm.method" required>
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Notes</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="payments.manualForm.notes">
+                        </label>
+                        <div class="flex justify-end gap-3 sm:col-span-2">
+                          <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closePaymentModal">Cancel</button>
+                          <button class="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="payments.saving">Save Payment</button>
+                        </div>
+                      </form>
+                    </section>
+                  </div>
+
+                  <div x-show="payments.modal === 'reject'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+                    <section class="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h2 class="text-lg font-bold text-slate-900">Reject Payment Submission</h2>
+                          <p class="mt-1 text-sm text-slate-500" x-text="payments.selectedSubmission ? `${payments.selectedSubmission.tenant?.full_name || 'Tenant'} - ${formatCurrency(payments.selectedSubmission.amount_claimed)}` : ''"></p>
+                        </div>
+                        <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button" @click="closePaymentModal" aria-label="Close modal">
+                          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                        </button>
+                      </div>
+                      <form class="space-y-4" @submit.prevent="rejectPaymentSubmission">
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Rejection reason</span>
+                          <textarea class="min-h-28 w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model.trim="payments.rejectForm.reason" required></textarea>
+                        </label>
+                        <div class="flex justify-end gap-3">
+                          <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closePaymentModal">Cancel</button>
+                          <button class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60" type="submit" :disabled="payments.saving">Reject Submission</button>
+                        </div>
+                      </form>
+                    </section>
+                  </div>
+                </div>
+              </template>
+
               <template x-if="currentPage === 'my-account'">
                 <div class="space-y-6">
                   <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
@@ -1412,6 +1607,27 @@
           loading: false,
           error: '',
           subscription: null
+        },
+        payments: {
+          loading: false,
+          saving: false,
+          error: '',
+          activeTab: 'pending',
+          modal: '',
+          selectedSubmission: null,
+          pendingSubmissions: [],
+          verifiedPayments: [],
+          leases: [],
+          manualForm: {
+            leaseId: '',
+            amount: 0,
+            date: '',
+            method: 'cash',
+            notes: ''
+          },
+          rejectForm: {
+            reason: ''
+          }
         },
         tenantLease: {
           loading: false,
@@ -2171,6 +2387,14 @@
           return this.profile?.role === 'landlord';
         },
 
+        canVerifyPayments() {
+          return this.profile?.role === 'landlord' || Boolean(this.permissions.can_verify_payments);
+        },
+
+        canViewPayments() {
+          return this.profile?.role === 'landlord' || Boolean(this.permissions.can_view_payments || this.permissions.can_verify_payments);
+        },
+
         async loadPropertyUnitData() {
           this.propertyUnit.loading = true;
           this.propertyUnit.error = '';
@@ -2428,6 +2652,8 @@
         },
 
         prepareUnitPayment() {
+          if (!this.canVerifyPayments()) return;
+
           if (!this.propertyUnit.currentLease) {
             this.propertyUnit.error = 'A unit needs an active lease before a payment can be logged.';
             return;
@@ -2443,6 +2669,7 @@
         },
 
         async logPaymentForSelectedUnit() {
+          if (!this.canVerifyPayments()) return;
           if (!this.propertyUnit.currentLease) return;
 
           const { error } = await supabaseClient
@@ -2465,6 +2692,302 @@
           this.propertyUnit.detailMode = '';
           await this.loadUnitDetail(this.propertyUnit.selectedUnit);
           await this.loadDashboardData();
+          if (this.currentPage === 'payments') await this.loadPaymentsData();
+        },
+
+        normalizeLease(lease) {
+          if (!lease) return null;
+          return {
+            ...lease,
+            tenant: lease.tenant || lease.tenants || null,
+            unit: lease.unit || lease.units || null
+          };
+        },
+
+        normalizePayment(payment, recordedByMap = new Map()) {
+          const lease = this.normalizeLease(payment.leases || payment.lease || null);
+          return {
+            ...payment,
+            lease,
+            recordedByName: recordedByMap.get(payment.recorded_by) || (payment.recorded_by === this.profile?.id ? this.profile.full_name : '')
+          };
+        },
+
+        normalizeSubmission(submission) {
+          return {
+            ...submission,
+            tenant: submission.tenants || null,
+            lease: this.normalizeLease(submission.leases || null)
+          };
+        },
+
+        async loadPaymentsData() {
+          if (!this.canViewPayments()) return;
+
+          this.payments.loading = true;
+          this.payments.error = '';
+
+          const [pendingResult, verifiedResult, leasesResult] = await Promise.all([
+            supabaseClient
+              .from('payment_submissions')
+              .select('id, lease_id, tenant_id, amount_claimed, payment_date, payment_method, reference_note, proof_image_url, status, rejection_reason, reviewed_by, reviewed_at, created_at, tenants(id, full_name, email), leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
+              .eq('status', 'pending')
+              .order('created_at', { ascending: false }),
+            supabaseClient
+              .from('payments')
+              .select('id, lease_id, submission_id, amount_paid, payment_date, payment_method, notes, receipt_number, recorded_by, created_at, leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
+              .order('payment_date', { ascending: false }),
+            supabaseClient
+              .from('leases')
+              .select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, status, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city))')
+              .eq('status', 'active')
+              .order('created_at', { ascending: false })
+          ]);
+
+          const firstError = pendingResult.error || verifiedResult.error || leasesResult.error;
+          if (firstError) {
+            this.payments.error = firstError.message;
+            this.payments.loading = false;
+            return;
+          }
+
+          const recordedByIds = [...new Set((verifiedResult.data || []).map(payment => payment.recorded_by).filter(Boolean))];
+          let recordedByMap = new Map();
+
+          if (recordedByIds.length > 0) {
+            const { data: recorders } = await supabaseClient
+              .from('profiles')
+              .select('id, full_name, email')
+              .in('id', recordedByIds);
+            recordedByMap = new Map((recorders || []).map(row => [row.id, row.full_name || row.email]));
+          }
+
+          this.payments.pendingSubmissions = (pendingResult.data || []).map(submission => this.normalizeSubmission(submission));
+          this.payments.verifiedPayments = (verifiedResult.data || []).map(payment => this.normalizePayment(payment, recordedByMap));
+          this.payments.leases = (leasesResult.data || []).map(lease => this.normalizeLease(lease));
+          this.payments.loading = false;
+        },
+
+        paymentUnitLabel(row) {
+          const lease = row.lease || this.normalizeLease(row.leases || null);
+          return lease?.unit?.unit_number || '-';
+        },
+
+        manualLeaseLabel(lease) {
+          const tenant = lease?.tenant?.full_name || '-';
+          const unit = lease?.unit?.unit_number || '-';
+          const property = lease?.unit?.properties?.name || lease?.unit?.property?.name || '-';
+          return `${tenant} - ${property} / Unit ${unit} - ${this.formatCurrency(lease?.monthly_rent)}`;
+        },
+
+        openManualPaymentModal() {
+          this.payments.error = '';
+          this.payments.modal = 'manual';
+          this.payments.manualForm = {
+            leaseId: '',
+            amount: 0,
+            date: new Date().toISOString().slice(0, 10),
+            method: 'cash',
+            notes: ''
+          };
+        },
+
+        closePaymentModal() {
+          this.payments.modal = '';
+          this.payments.selectedSubmission = null;
+          this.payments.rejectForm = { reason: '' };
+          this.payments.saving = false;
+        },
+
+        prefillManualPaymentAmount() {
+          const lease = this.payments.leases.find(row => row.id === this.payments.manualForm.leaseId);
+          if (lease) this.payments.manualForm.amount = Number(lease.monthly_rent || 0);
+        },
+
+        async logManualPayment() {
+          if (!this.canVerifyPayments()) return;
+
+          this.payments.error = '';
+          this.payments.saving = true;
+
+          const { error } = await supabaseClient
+            .from('payments')
+            .insert({
+              lease_id: this.payments.manualForm.leaseId,
+              submission_id: null,
+              amount_paid: Number(this.payments.manualForm.amount || 0),
+              payment_date: this.payments.manualForm.date,
+              payment_method: this.payments.manualForm.method,
+              notes: this.payments.manualForm.notes || null,
+              recorded_by: this.profile.id
+            });
+
+          if (error) {
+            this.payments.error = error.message;
+            this.payments.saving = false;
+            return;
+          }
+
+          this.closePaymentModal();
+          this.payments.activeTab = 'verified';
+          await this.loadPaymentsData();
+          await this.loadDashboardData();
+        },
+
+        async approvePaymentSubmission(submission) {
+          if (!this.canVerifyPayments()) return;
+
+          this.payments.error = '';
+          this.payments.saving = true;
+
+          const { error } = await supabaseClient.rpc('accept_payment_submission', {
+            p_submission_id: submission.id
+          });
+
+          if (error) {
+            this.payments.error = error.message;
+            this.payments.saving = false;
+            return;
+          }
+
+          this.payments.saving = false;
+          this.payments.activeTab = 'verified';
+          await this.loadPaymentsData();
+          await this.loadDashboardData();
+        },
+
+        openRejectPaymentModal(submission) {
+          if (!this.canVerifyPayments()) return;
+          this.payments.error = '';
+          this.payments.selectedSubmission = submission;
+          this.payments.rejectForm = { reason: '' };
+          this.payments.modal = 'reject';
+        },
+
+        async rejectPaymentSubmission() {
+          if (!this.canVerifyPayments() || !this.payments.selectedSubmission) return;
+
+          this.payments.error = '';
+          this.payments.saving = true;
+
+          const { error } = await supabaseClient
+            .from('payment_submissions')
+            .update({
+              status: 'rejected',
+              rejection_reason: this.payments.rejectForm.reason,
+              reviewed_by: this.profile.id,
+              reviewed_at: new Date().toISOString()
+            })
+            .eq('id', this.payments.selectedSubmission.id);
+
+          if (error) {
+            this.payments.error = error.message;
+            this.payments.saving = false;
+            return;
+          }
+
+          this.closePaymentModal();
+          await this.loadPaymentsData();
+          await this.loadDashboardData();
+        },
+
+        async paymentForReceipt(payment, leaseContext = null) {
+          let normalized = this.normalizePayment({
+            ...payment,
+            lease: leaseContext || payment.lease || payment.leases || null
+          });
+
+          if (!normalized.lease && payment.id) {
+            const { data, error } = await supabaseClient
+              .from('payments')
+              .select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, recorded_by, created_at, leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
+              .eq('id', payment.id)
+              .maybeSingle();
+
+            if (error) throw error;
+            normalized = this.normalizePayment(data || payment);
+          }
+
+          if (leaseContext && !normalized.lease?.unit && this.propertyUnit.selectedUnit) {
+            normalized.lease = {
+              ...normalized.lease,
+              unit: {
+                ...this.propertyUnit.selectedUnit,
+                properties: this.propertyUnit.selectedUnit.property || this.propertyUnit.properties.find(property => property.id === this.propertyUnit.selectedUnit.property_id) || null
+              }
+            };
+          }
+
+          return normalized;
+        },
+
+        async downloadReceipt(payment, leaseContext = null) {
+          this.payments.error = '';
+
+          try {
+            const receiptPayment = await this.paymentForReceipt(payment, leaseContext);
+            const lease = receiptPayment.lease || {};
+            const unit = lease.unit || {};
+            const property = unit.properties || unit.property || {};
+            const tenant = lease.tenant || {};
+            const landlordName = this.profile?.role === 'landlord' ? this.profile.full_name : this.profile?.landlord_name || 'Landlord';
+            const amountPaid = Number(receiptPayment.amount_paid || 0);
+            const monthlyRent = Number(lease.monthly_rent || 0);
+            const remainingBalance = Math.max(monthlyRent - amountPaid, 0);
+            const receiptNumber = receiptPayment.receipt_number || `RR-${receiptPayment.id?.slice(0, 8) || Date.now()}`;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(20);
+            doc.text('RentRadar', 20, 22);
+            doc.setFontSize(13);
+            doc.text('Payment Receipt', 20, 32);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text(`Receipt Number: ${receiptNumber}`, 140, 22);
+            doc.text(`Date: ${this.formatDate(receiptPayment.payment_date)}`, 140, 29);
+
+            doc.setDrawColor(16, 185, 129);
+            doc.setLineWidth(0.8);
+            doc.line(20, 40, 190, 40);
+
+            const rows = [
+              ['Landlord', landlordName || '-'],
+              ['Tenant', tenant.full_name || '-'],
+              ['Unit', unit.unit_number || '-'],
+              ['Property Address', [property.name, property.address, property.city].filter(Boolean).join(', ') || '-'],
+              ['Amount Paid', this.formatCurrency(amountPaid)],
+              ['Method', this.titleCase(receiptPayment.payment_method)],
+              ['Remaining Balance', this.formatCurrency(remainingBalance)]
+            ];
+
+            let y = 56;
+            rows.forEach(([label, value]) => {
+              doc.setFont('helvetica', 'bold');
+              doc.text(`${label}:`, 20, y);
+              doc.setFont('helvetica', 'normal');
+              doc.text(String(value), 66, y, { maxWidth: 120 });
+              y += label === 'Property Address' ? 14 : 10;
+            });
+
+            if (receiptPayment.notes) {
+              doc.setFont('helvetica', 'bold');
+              doc.text('Notes:', 20, y + 2);
+              doc.setFont('helvetica', 'normal');
+              doc.text(String(receiptPayment.notes), 66, y + 2, { maxWidth: 120 });
+            }
+
+            doc.setDrawColor(226, 232, 240);
+            doc.line(20, 270, 190, 270);
+            doc.setFontSize(11);
+            doc.text('Thank you for your payment', 20, 280);
+            doc.save(`${receiptNumber}.pdf`);
+          } catch (error) {
+            this.payments.error = error.message || 'Receipt could not be generated.';
+            this.propertyUnit.error = this.payments.error;
+          }
         },
 
         maintenanceBadgeClass(status) {
@@ -2866,6 +3389,10 @@
 
           if ((page === 'tenants' || page === 'leases') && this.currentShell === 'app') {
             await this.loadTenantLeaseData();
+          }
+
+          if (page === 'payments' && this.currentShell === 'app') {
+            await this.loadPaymentsData();
           }
 
           if (page === 'my-account' && this.currentShell === 'app') {
