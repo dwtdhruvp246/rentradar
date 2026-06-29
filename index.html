@@ -912,12 +912,199 @@
                                 <p class="text-sm font-semibold text-slate-900" x-text="request.description"></p>
                                 <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="maintenanceBadgeClass(request.status)" x-text="titleCase(request.status)"></span>
                               </div>
-                              <p class="mt-1 text-xs text-slate-500" x-text="`${titleCase(request.priority)} priority · ${formatDate(request.created_at)}`"></p>
+                              <p class="mt-1 text-xs text-slate-500" x-text="`${titleCase(request.priority)} priority - ${formatDate(request.created_at)}`"></p>
                             </div>
                           </template>
                         </div>
                       </section>
                     </div>
+                  </section>
+                </div>
+              </template>
+
+              <template x-if="currentPage === 'tenants'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Tenants</h1>
+                        <p class="mt-1 text-sm text-slate-500">Invite tenants and review their lease and payment history.</p>
+                      </div>
+                      <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadTenantLeaseData">Refresh</button>
+                    </div>
+
+                    <template x-if="tenantLease.error">
+                      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="tenantLease.error"></div>
+                    </template>
+
+                    <form x-show="profile?.role === 'landlord'" class="grid gap-3 lg:grid-cols-[1fr_0.9fr_1fr_0.8fr_auto]" @submit.prevent="addTenantInvite">
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="Full name" x-model.trim="tenantLease.tenantForm.fullName" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="tel" placeholder="Phone" x-model.trim="tenantLease.tenantForm.phone">
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="email" placeholder="Email" x-model.trim="tenantLease.tenantForm.email" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" placeholder="ID number" x-model.trim="tenantLease.tenantForm.idNumber">
+                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving">Add Tenant</button>
+                    </form>
+
+                    <template x-if="tenantLease.generatedInviteLink">
+                      <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                        <p class="text-sm font-semibold text-emerald-800">Tenant invite link generated</p>
+                        <p class="mt-2 break-all text-sm text-emerald-700" x-text="tenantLease.generatedInviteLink"></p>
+                        <button class="mt-3 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="copyText(tenantLease.generatedInviteLink)">Copy link</button>
+                      </div>
+                    </template>
+                  </section>
+
+                  <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th class="px-4 py-3 font-semibold">Name</th>
+                            <th class="px-4 py-3 font-semibold">Phone</th>
+                            <th class="px-4 py-3 font-semibold">Email</th>
+                            <th class="px-4 py-3 font-semibold">ID</th>
+                            <th class="px-4 py-3 font-semibold">Linked Unit</th>
+                            <th class="px-4 py-3 font-semibold">Invite</th>
+                            <th class="px-4 py-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                          <template x-if="!tenantLease.loading && tenantLease.tenants.length === 0">
+                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No tenants yet.</td></tr>
+                          </template>
+                          <template x-for="tenant in tenantLease.tenants" :key="tenant.id">
+                            <tr class="odd:bg-white even:bg-slate-50/60">
+                              <td class="px-4 py-3 font-semibold text-slate-900" x-text="tenant.full_name"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="tenant.phone || '-'"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="tenant.email"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="tenant.id_number || '-'"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="tenantUnitLabel(tenant.id)"></td>
+                              <td class="px-4 py-3">
+                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="tenant.invite_accepted ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-amber-700'" x-text="tenant.invite_accepted ? 'Accepted' : 'Pending'"></span>
+                              </td>
+                              <td class="px-4 py-3">
+                                <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewTenant(tenant)">View</button>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section x-show="tenantLease.selectedTenant" class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="mb-5">
+                      <h2 class="text-lg font-bold text-slate-900" x-text="tenantLease.selectedTenant?.full_name || 'Tenant Detail'"></h2>
+                      <p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedTenant?.email || ''"></p>
+                    </div>
+                    <div class="grid gap-6 xl:grid-cols-2">
+                      <section class="overflow-hidden rounded-lg border border-slate-200">
+                        <div class="border-b border-slate-200 bg-slate-50 px-4 py-3"><h3 class="text-sm font-semibold text-slate-900">Lease History</h3></div>
+                        <div class="overflow-x-auto">
+                          <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                            <thead class="bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Unit</th><th class="px-4 py-3">Dates</th><th class="px-4 py-3">Rent</th><th class="px-4 py-3">Status</th></tr></thead>
+                            <tbody class="divide-y divide-slate-200">
+                              <template x-if="tenantLease.selectedTenantLeases.length === 0"><tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="4">No leases.</td></tr></template>
+                              <template x-for="lease in tenantLease.selectedTenantLeases" :key="lease.id">
+                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td></tr>
+                              </template>
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+
+                      <section class="overflow-hidden rounded-lg border border-slate-200">
+                        <div class="border-b border-slate-200 bg-slate-50 px-4 py-3"><h3 class="text-sm font-semibold text-slate-900">Payment History</h3></div>
+                        <div class="overflow-x-auto">
+                          <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                            <thead class="bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Method</th></tr></thead>
+                            <tbody class="divide-y divide-slate-200">
+                              <template x-if="tenantLease.selectedTenantPayments.length === 0"><tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="4">No payments.</td></tr></template>
+                              <template x-for="payment in tenantLease.selectedTenantPayments" :key="payment.id">
+                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="payment.receipt_number || '-'"></td><td class="px-4 py-3" x-text="formatCurrency(payment.amount_paid)"></td><td class="px-4 py-3" x-text="formatDate(payment.payment_date)"></td><td class="px-4 py-3" x-text="titleCase(payment.payment_method)"></td></tr>
+                              </template>
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    </div>
+                  </section>
+                </div>
+              </template>
+
+              <template x-if="currentPage === 'leases'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Leases</h1>
+                        <p class="mt-1 text-sm text-slate-500">Create leases and review lease-level payment history.</p>
+                      </div>
+                      <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadTenantLeaseData">Refresh</button>
+                    </div>
+
+                    <template x-if="tenantLease.error">
+                      <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="tenantLease.error"></div>
+                    </template>
+
+                    <form x-show="canManageLeases()" class="grid gap-3 xl:grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]" @submit.prevent="addLeaseFromPage">
+                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.tenantId" required>
+                        <option value="">Tenant</option>
+                        <template x-for="tenant in tenantsAvailableForLease()" :key="tenant.id"><option :value="tenant.id" x-text="tenant.full_name"></option></template>
+                      </select>
+                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.propertyId" required>
+                        <option value="">Property</option>
+                        <template x-for="property in tenantLease.properties" :key="property.id"><option :value="property.id" x-text="property.name"></option></template>
+                      </select>
+                      <select class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="tenantLease.leaseForm.unitId" @change="prefillLeaseRent" required>
+                        <option value="">Vacant unit</option>
+                        <template x-for="unit in vacantUnitsForLeaseForm()" :key="unit.id"><option :value="unit.id" x-text="unit.unit_number"></option></template>
+                      </select>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="tenantLease.leaseForm.startDate" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="tenantLease.leaseForm.endDate" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Rent" x-model.number="tenantLease.leaseForm.rent" required>
+                      <input class="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0" step="0.01" placeholder="Deposit" x-model.number="tenantLease.leaseForm.depositAmount">
+                      <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenantLease.saving">Add Lease</button>
+                    </form>
+                    <label x-show="canManageLeases()" class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="tenantLease.leaseForm.depositPaid">
+                      Deposit paid
+                    </label>
+                  </section>
+
+                  <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Tenant</th><th class="px-4 py-3">Property</th><th class="px-4 py-3">Unit</th><th class="px-4 py-3">Dates</th><th class="px-4 py-3">Rent</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th></tr></thead>
+                        <tbody class="divide-y divide-slate-200">
+                          <template x-if="!tenantLease.loading && tenantLease.leases.length === 0"><tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No leases yet.</td></tr></template>
+                          <template x-for="lease in tenantLease.leases" :key="lease.id">
+                            <tr class="odd:bg-white even:bg-slate-50/60"><td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant?.full_name || '-'"></td><td class="px-4 py-3" x-text="leasePropertyLabel(lease)"></td><td class="px-4 py-3" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewLease(lease)">View</button></td></tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section x-show="tenantLease.selectedLease" class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="mb-5"><h2 class="text-lg font-bold text-slate-900">Lease Detail</h2><p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedLease ? `${tenantLease.selectedLease.tenant?.full_name || '-'} - ${leaseUnitLabel(tenantLease.selectedLease)}` : ''"></p></div>
+                    <div class="grid gap-4 lg:grid-cols-3">
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Dates</p><p class="mt-2 font-semibold text-slate-900" x-text="tenantLease.selectedLease ? `${formatDate(tenantLease.selectedLease.start_date)} - ${formatDate(tenantLease.selectedLease.end_date)}` : '-'"></p></div>
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Monthly Rent</p><p class="mt-2 font-semibold text-slate-900" x-text="formatCurrency(tenantLease.selectedLease?.monthly_rent)"></p></div>
+                      <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Deposit</p><p class="mt-2 font-semibold text-slate-900" x-text="`${formatCurrency(tenantLease.selectedLease?.deposit_amount)} - ${tenantLease.selectedLease?.deposit_paid ? 'Paid' : 'Unpaid'}`"></p></div>
+                    </div>
+                    <section class="mt-6 overflow-hidden rounded-lg border border-slate-200">
+                      <div class="border-b border-slate-200 bg-slate-50 px-4 py-3"><h3 class="text-sm font-semibold text-slate-900">Payment History</h3></div>
+                      <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                          <thead class="bg-white text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Method</th></tr></thead>
+                          <tbody class="divide-y divide-slate-200">
+                            <template x-if="tenantLease.selectedLeasePayments.length === 0"><tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="4">No payments.</td></tr></template>
+                            <template x-for="payment in tenantLease.selectedLeasePayments" :key="payment.id"><tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="payment.receipt_number || '-'"></td><td class="px-4 py-3" x-text="formatCurrency(payment.amount_paid)"></td><td class="px-4 py-3" x-text="formatDate(payment.payment_date)"></td><td class="px-4 py-3" x-text="titleCase(payment.payment_method)"></td></tr></template>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
                   </section>
                 </div>
               </template>
@@ -1129,6 +1316,37 @@
           loading: false,
           error: '',
           subscription: null
+        },
+        tenantLease: {
+          loading: false,
+          saving: false,
+          error: '',
+          generatedInviteLink: '',
+          properties: [],
+          units: [],
+          tenants: [],
+          leases: [],
+          selectedTenant: null,
+          selectedTenantLeases: [],
+          selectedTenantPayments: [],
+          selectedLease: null,
+          selectedLeasePayments: [],
+          tenantForm: {
+            fullName: '',
+            phone: '',
+            email: '',
+            idNumber: ''
+          },
+          leaseForm: {
+            tenantId: '',
+            propertyId: '',
+            unitId: '',
+            startDate: '',
+            endDate: '',
+            rent: 0,
+            depositAmount: 0,
+            depositPaid: false
+          }
         },
 
         async init() {
@@ -2162,6 +2380,207 @@
           return classes[status] || 'bg-slate-100 text-slate-600';
         },
 
+        async loadTenantLeaseData() {
+          this.tenantLease.loading = true;
+          this.tenantLease.error = '';
+
+          const results = await Promise.all([
+            supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').order('name', { ascending: true }),
+            supabaseClient.from('units').select('id, property_id, unit_number, bedrooms, bathrooms, monthly_rent, status, properties(id, name, address, city)').order('unit_number', { ascending: true }),
+            supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_token, invite_accepted, created_at').order('created_at', { ascending: false }),
+            supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, status, created_at, tenants(id, full_name, email, phone), units(id, unit_number, property_id, properties(id, name, address, city))').order('created_at', { ascending: false })
+          ]);
+
+          const [propertiesResult, unitsResult, tenantsResult, leasesResult] = results;
+          const firstError = propertiesResult.error || unitsResult.error || tenantsResult.error || leasesResult.error;
+          if (firstError) this.tenantLease.error = firstError.message;
+
+          this.tenantLease.properties = propertiesResult.data || [];
+          this.tenantLease.units = (unitsResult.data || []).map(unit => ({ ...unit, property: unit.properties || null }));
+          this.tenantLease.tenants = tenantsResult.data || [];
+          this.tenantLease.leases = (leasesResult.data || []).map(lease => ({
+            ...lease,
+            tenant: lease.tenants || null,
+            unit: lease.units || null
+          }));
+
+          if (this.tenantLease.selectedTenant) {
+            const refreshedTenant = this.tenantLease.tenants.find(tenant => tenant.id === this.tenantLease.selectedTenant.id);
+            if (refreshedTenant) await this.viewTenant(refreshedTenant);
+          }
+
+          if (this.tenantLease.selectedLease) {
+            const refreshedLease = this.tenantLease.leases.find(lease => lease.id === this.tenantLease.selectedLease.id);
+            if (refreshedLease) await this.viewLease(refreshedLease);
+          }
+
+          this.tenantLease.loading = false;
+        },
+
+        async addTenantInvite() {
+          this.tenantLease.error = '';
+          this.tenantLease.saving = true;
+          this.tenantLease.generatedInviteLink = '';
+
+          const token = this.generateSecureToken();
+          const { data: tenantRow, error: tenantError } = await supabaseClient
+            .from('tenants')
+            .insert({
+              landlord_id: this.currentLandlordId(),
+              full_name: this.tenantLease.tenantForm.fullName,
+              phone: this.tenantLease.tenantForm.phone || null,
+              email: this.tenantLease.tenantForm.email,
+              id_number: this.tenantLease.tenantForm.idNumber || null,
+              invite_token: token,
+              invite_accepted: false
+            })
+            .select('id')
+            .single();
+
+          if (tenantError) {
+            this.tenantLease.error = tenantError.message;
+            this.tenantLease.saving = false;
+            return;
+          }
+
+          const { error: inviteError } = await supabaseClient
+            .from('invite_tokens')
+            .insert({
+              token,
+              email: this.tenantLease.tenantForm.email,
+              role: 'tenant',
+              landlord_id: this.currentLandlordId(),
+              metadata: {
+                tenant_id: tenantRow.id,
+                full_name: this.tenantLease.tenantForm.fullName,
+                phone: this.tenantLease.tenantForm.phone || '',
+                id_number: this.tenantLease.tenantForm.idNumber || ''
+              },
+              expires_at: this.addHoursIso(48)
+            });
+
+          if (inviteError) {
+            this.tenantLease.error = inviteError.message;
+            this.tenantLease.saving = false;
+            return;
+          }
+
+          this.tenantLease.generatedInviteLink = this.buildInviteLink(token);
+          this.tenantLease.tenantForm = { fullName: '', phone: '', email: '', idNumber: '' };
+          this.tenantLease.saving = false;
+          await this.loadTenantLeaseData();
+        },
+
+        tenantActiveLease(tenantId) {
+          return this.tenantLease.leases.find(lease => lease.tenant_id === tenantId && lease.status === 'active') || null;
+        },
+
+        tenantUnitLabel(tenantId) {
+          const lease = this.tenantActiveLease(tenantId);
+          return lease ? this.leaseUnitLabel(lease) : '-';
+        },
+
+        leaseUnitLabel(lease) {
+          return lease?.unit?.unit_number || lease?.units?.unit_number || '-';
+        },
+
+        leasePropertyLabel(lease) {
+          const property = lease?.unit?.properties || lease?.unit?.property || lease?.units?.properties;
+          return property?.name || '-';
+        },
+
+        async viewTenant(tenant) {
+          this.tenantLease.selectedTenant = tenant;
+          this.tenantLease.selectedTenantLeases = this.tenantLease.leases.filter(lease => lease.tenant_id === tenant.id);
+          const leaseIds = this.tenantLease.selectedTenantLeases.map(lease => lease.id);
+
+          if (leaseIds.length === 0) {
+            this.tenantLease.selectedTenantPayments = [];
+            return;
+          }
+
+          const { data, error } = await supabaseClient
+            .from('payments')
+            .select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, created_at')
+            .in('lease_id', leaseIds)
+            .order('payment_date', { ascending: false });
+
+          if (error) {
+            this.tenantLease.error = error.message;
+            return;
+          }
+
+          this.tenantLease.selectedTenantPayments = data || [];
+        },
+
+        tenantsAvailableForLease() {
+          const activeTenantIds = new Set(this.tenantLease.leases.filter(lease => lease.status === 'active').map(lease => lease.tenant_id));
+          return this.tenantLease.tenants.filter(tenant => !activeTenantIds.has(tenant.id));
+        },
+
+        vacantUnitsForLeaseForm() {
+          return this.tenantLease.units.filter(unit => {
+            const propertyMatches = !this.tenantLease.leaseForm.propertyId || unit.property_id === this.tenantLease.leaseForm.propertyId;
+            return propertyMatches && unit.status === 'vacant';
+          });
+        },
+
+        prefillLeaseRent() {
+          const unit = this.tenantLease.units.find(item => item.id === this.tenantLease.leaseForm.unitId);
+          if (unit) this.tenantLease.leaseForm.rent = Number(unit.monthly_rent || 0);
+        },
+
+        async addLeaseFromPage() {
+          this.tenantLease.error = '';
+          this.tenantLease.saving = true;
+
+          try {
+            await this.createLease({
+              unitId: this.tenantLease.leaseForm.unitId,
+              tenantId: this.tenantLease.leaseForm.tenantId,
+              startDate: this.tenantLease.leaseForm.startDate,
+              endDate: this.tenantLease.leaseForm.endDate,
+              monthlyRent: this.tenantLease.leaseForm.rent,
+              depositAmount: this.tenantLease.leaseForm.depositAmount,
+              depositPaid: this.tenantLease.leaseForm.depositPaid
+            });
+
+            this.tenantLease.leaseForm = {
+              tenantId: '',
+              propertyId: '',
+              unitId: '',
+              startDate: '',
+              endDate: '',
+              rent: 0,
+              depositAmount: 0,
+              depositPaid: false
+            };
+            await this.loadTenantLeaseData();
+            await this.loadPropertyUnitData();
+            await this.loadDashboardData();
+          } catch (error) {
+            this.tenantLease.error = error.message;
+          }
+
+          this.tenantLease.saving = false;
+        },
+
+        async viewLease(lease) {
+          this.tenantLease.selectedLease = lease;
+          const { data, error } = await supabaseClient
+            .from('payments')
+            .select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, created_at')
+            .eq('lease_id', lease.id)
+            .order('payment_date', { ascending: false });
+
+          if (error) {
+            this.tenantLease.error = error.message;
+            return;
+          }
+
+          this.tenantLease.selectedLeasePayments = data || [];
+        },
+
         async loadMyAccountData() {
           if (this.profile?.role !== 'landlord') return;
 
@@ -2347,6 +2766,10 @@
 
           if ((page === 'properties' || page === 'units') && this.currentShell === 'app') {
             await this.loadPropertyUnitData();
+          }
+
+          if ((page === 'tenants' || page === 'leases') && this.currentShell === 'app') {
+            await this.loadTenantLeaseData();
           }
 
           if (page === 'my-account' && this.currentShell === 'app') {
