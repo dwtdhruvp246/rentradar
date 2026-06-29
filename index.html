@@ -1400,6 +1400,342 @@
                 </div>
               </template>
 
+              <template x-if="currentPage === 'maintenance'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Maintenance</h1>
+                        <p class="mt-1 text-sm text-slate-500">Track requests, assign staff, and close out repairs.</p>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        <button class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="openMaintenanceLogModal">Log Request</button>
+                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadMaintenanceData">Refresh</button>
+                      </div>
+                    </div>
+
+                    <div class="mt-5 grid gap-3 md:grid-cols-4">
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Status</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.filters.status">
+                          <option value="">All statuses</option>
+                          <option value="open">Open</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="resolved">Resolved</option>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Priority</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.filters.priority">
+                          <option value="">All priorities</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Property</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.filters.propertyId">
+                          <option value="">All properties</option>
+                          <template x-for="property in maintenance.properties" :key="property.id">
+                            <option :value="property.id" x-text="property.name"></option>
+                          </template>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-slate-700">Assigned staff</span>
+                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.filters.assignedTo">
+                          <option value="">Anyone</option>
+                          <option value="unassigned">Unassigned</option>
+                          <template x-for="staff in maintenance.staff" :key="staff.profile_id">
+                            <option :value="staff.profile_id" x-text="staff.full_name"></option>
+                          </template>
+                        </select>
+                      </label>
+                    </div>
+
+                    <template x-if="maintenance.error">
+                      <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="maintenance.error"></div>
+                    </template>
+                  </section>
+
+                  <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th class="px-4 py-3 font-semibold">Request</th>
+                            <th class="px-4 py-3 font-semibold">Unit</th>
+                            <th class="px-4 py-3 font-semibold">Priority</th>
+                            <th class="px-4 py-3 font-semibold">Status</th>
+                            <th class="px-4 py-3 font-semibold">Assigned</th>
+                            <th class="px-4 py-3 font-semibold">Created</th>
+                            <th class="px-4 py-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                          <template x-if="!maintenance.loading && filteredMaintenanceRequests().length === 0">
+                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No maintenance requests found.</td></tr>
+                          </template>
+                          <template x-for="request in filteredMaintenanceRequests()" :key="request.id">
+                            <tr class="odd:bg-white even:bg-slate-50/60">
+                              <td class="max-w-sm px-4 py-3">
+                                <p class="font-semibold text-slate-900" x-text="request.description"></p>
+                                <p class="mt-1 text-xs text-slate-500" x-text="request.resolution_notes ? `Resolution: ${request.resolution_notes}` : 'No resolution notes yet.'"></p>
+                              </td>
+                              <td class="px-4 py-3 text-slate-700" x-text="maintenanceUnitLabel(request)"></td>
+                              <td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="priorityBadgeClass(request.priority)" x-text="titleCase(request.priority)"></span></td>
+                              <td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="maintenanceBadgeClass(request.status)" x-text="titleCase(request.status)"></span></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="staffName(request.assigned_to_staff_id)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatDate(request.created_at)"></td>
+                              <td class="px-4 py-3">
+                                <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openMaintenanceEditModal(request)">Update</button>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <div x-show="maintenance.modal === 'log'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+                    <section class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h2 class="text-lg font-bold text-slate-900">Log Maintenance Request</h2>
+                          <p class="mt-1 text-sm text-slate-500">Create an internal request for a unit.</p>
+                        </div>
+                        <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button" @click="closeMaintenanceModal" aria-label="Close modal">
+                          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                        </button>
+                      </div>
+                      <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="logMaintenanceRequest">
+                        <label class="block sm:col-span-2">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Unit</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.logForm.unitId" required>
+                            <option value="">Select unit</option>
+                            <template x-for="unit in maintenance.units" :key="unit.id">
+                              <option :value="unit.id" x-text="maintenanceUnitOptionLabel(unit)"></option>
+                            </template>
+                          </select>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Priority</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.logForm.priority" required>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                          </select>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Assign to staff</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.logForm.assignedTo">
+                            <option value="">Unassigned</option>
+                            <template x-for="staff in maintenance.staff" :key="staff.profile_id">
+                              <option :value="staff.profile_id" x-text="staff.full_name"></option>
+                            </template>
+                          </select>
+                        </label>
+                        <label class="block sm:col-span-2">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Description</span>
+                          <textarea class="min-h-28 w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model.trim="maintenance.logForm.description" required></textarea>
+                        </label>
+                        <label class="block sm:col-span-2">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Photo URL</span>
+                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="url" x-model.trim="maintenance.logForm.photoUrl">
+                        </label>
+                        <div class="flex justify-end gap-3 sm:col-span-2">
+                          <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closeMaintenanceModal">Cancel</button>
+                          <button class="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="maintenance.saving">Save Request</button>
+                        </div>
+                      </form>
+                    </section>
+                  </div>
+
+                  <div x-show="maintenance.modal === 'edit'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+                    <section class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h2 class="text-lg font-bold text-slate-900">Update Maintenance Request</h2>
+                          <p class="mt-1 text-sm text-slate-500" x-text="maintenance.selectedRequest ? maintenanceUnitLabel(maintenance.selectedRequest) : ''"></p>
+                        </div>
+                        <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button" @click="closeMaintenanceModal" aria-label="Close modal">
+                          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                        </button>
+                      </div>
+                      <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="saveMaintenanceUpdate">
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Status</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.editForm.status" required>
+                            <option value="open">Open</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                          </select>
+                        </label>
+                        <label class="block">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Assign to staff</span>
+                          <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="maintenance.editForm.assignedTo">
+                            <option value="">Unassigned</option>
+                            <template x-for="staff in maintenance.staff" :key="staff.profile_id">
+                              <option :value="staff.profile_id" x-text="staff.full_name"></option>
+                            </template>
+                          </select>
+                        </label>
+                        <label class="block sm:col-span-2">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Resolution notes</span>
+                          <textarea class="min-h-28 w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model.trim="maintenance.editForm.resolutionNotes"></textarea>
+                        </label>
+                        <div class="flex justify-end gap-3 sm:col-span-2">
+                          <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closeMaintenanceModal">Cancel</button>
+                          <button class="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="maintenance.saving">Save Update</button>
+                        </div>
+                      </form>
+                    </section>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="currentPage === 'staff'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Staff</h1>
+                        <p class="mt-1 text-sm text-slate-500">Invite team members and control operational permissions.</p>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        <button class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="openStaffInviteModal">Invite Staff</button>
+                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadStaffData">Refresh</button>
+                      </div>
+                    </div>
+
+                    <template x-if="staff.error">
+                      <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="staff.error"></div>
+                    </template>
+                    <template x-if="staff.generatedInviteLink">
+                      <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                        <p class="text-sm font-semibold text-emerald-800">Staff invite link generated</p>
+                        <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+                          <input class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-700" type="text" x-model="staff.generatedInviteLink" readonly>
+                          <button class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="copyText(staff.generatedInviteLink)">Copy</button>
+                        </div>
+                      </div>
+                    </template>
+                  </section>
+
+                  <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th class="px-4 py-3 font-semibold">Staff Member</th>
+                            <th class="px-4 py-3 font-semibold">Status</th>
+                            <th class="px-4 py-3 font-semibold">Properties</th>
+                            <th class="px-4 py-3 font-semibold">Permissions</th>
+                            <th class="px-4 py-3 font-semibold">Invited</th>
+                            <th class="px-4 py-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                          <template x-if="!staff.loading && staff.members.length === 0">
+                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="6">No staff invited yet.</td></tr>
+                          </template>
+                          <template x-for="member in staff.members" :key="member.rowKey">
+                            <tr class="odd:bg-white even:bg-slate-50/60">
+                              <td class="px-4 py-3">
+                                <p class="font-semibold text-slate-900" x-text="member.full_name"></p>
+                                <p class="mt-1 text-xs text-slate-500" x-text="member.email"></p>
+                              </td>
+                              <td class="px-4 py-3">
+                                <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="member.accepted ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-amber-700'" x-text="member.accepted ? 'Accepted' : 'Pending'"></span>
+                              </td>
+                              <td class="px-4 py-3 text-slate-700" x-text="staffPropertyScopeLabel(member)"></td>
+                              <td class="px-4 py-3">
+                                <div class="flex max-w-md flex-wrap gap-1.5">
+                                  <template x-for="badge in staffPermissionBadges(member)" :key="badge">
+                                    <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700" x-text="badge"></span>
+                                  </template>
+                                </div>
+                              </td>
+                              <td class="px-4 py-3 text-slate-700" x-text="formatDate(member.invited_at || member.created_at)"></td>
+                              <td class="px-4 py-3">
+                                <div class="flex flex-wrap gap-2">
+                                  <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openStaffPermissionsModal(member)">Edit</button>
+                                  <button x-show="!member.accepted && member.invite_link" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100" type="button" @click="copyText(member.invite_link)">Copy Invite</button>
+                                  <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="removeStaff(member)">Remove</button>
+                                </div>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <div x-show="staff.modal === 'invite' || staff.modal === 'edit'" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+                    <section class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h2 class="text-lg font-bold text-slate-900" x-text="staff.modal === 'invite' ? 'Invite Staff' : 'Edit Staff Permissions'"></h2>
+                          <p class="mt-1 text-sm text-slate-500" x-text="staff.selectedMember?.email || 'Create a single-use invite that expires in 48 hours.'"></p>
+                        </div>
+                        <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button" @click="closeStaffModal" aria-label="Close modal">
+                          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                        </button>
+                      </div>
+
+                      <form class="space-y-5" @submit.prevent="staff.modal === 'invite' ? createStaffInvite() : saveStaffPermissions()">
+                        <div x-show="staff.modal === 'invite'" class="grid gap-4 sm:grid-cols-3">
+                          <label class="block">
+                            <span class="mb-2 block text-sm font-medium text-slate-700">Full name</span>
+                            <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="staff.form.fullName" :required="staff.modal === 'invite'">
+                          </label>
+                          <label class="block">
+                            <span class="mb-2 block text-sm font-medium text-slate-700">Email</span>
+                            <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="email" x-model.trim="staff.form.email" :required="staff.modal === 'invite'">
+                          </label>
+                          <label class="block">
+                            <span class="mb-2 block text-sm font-medium text-slate-700">Phone</span>
+                            <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="tel" x-model.trim="staff.form.phone">
+                          </label>
+                        </div>
+
+                        <section class="rounded-lg border border-slate-200 p-4">
+                          <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                            <input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="staff.form.allProperties">
+                            All properties
+                          </label>
+                          <div x-show="!staff.form.allProperties" class="mt-4 grid gap-2 sm:grid-cols-2">
+                            <template x-for="property in staff.properties" :key="property.id">
+                              <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+                                <input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" :value="property.id" x-model="staff.form.propertyIds">
+                                <span x-text="property.name"></span>
+                              </label>
+                            </template>
+                          </div>
+                        </section>
+
+                        <section class="rounded-lg border border-slate-200 p-4">
+                          <h3 class="text-sm font-semibold text-slate-900">Permissions</h3>
+                          <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"><input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="staff.form.canViewTenants"> View tenants</label>
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"><input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="staff.form.canManageMaintenance"> Manage maintenance</label>
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"><input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="staff.form.canViewPayments"> View payments</label>
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"><input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="staff.form.canVerifyPayments"> Verify payments</label>
+                            <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"><input class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" type="checkbox" x-model="staff.form.canManageLeases"> Manage leases</label>
+                          </div>
+                        </section>
+
+                        <div class="flex justify-end gap-3">
+                          <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closeStaffModal">Cancel</button>
+                          <button class="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="staff.saving" x-text="staff.modal === 'invite' ? 'Create Invite' : 'Save Permissions'"></button>
+                        </div>
+                      </form>
+                    </section>
+                  </div>
+                </div>
+              </template>
+
               <template x-if="currentPage === 'my-account'">
                 <div class="space-y-6">
                   <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
@@ -1627,6 +1963,58 @@
           },
           rejectForm: {
             reason: ''
+          }
+        },
+        maintenance: {
+          loading: false,
+          saving: false,
+          error: '',
+          modal: '',
+          selectedRequest: null,
+          requests: [],
+          units: [],
+          leases: [],
+          properties: [],
+          staff: [],
+          filters: {
+            status: '',
+            priority: '',
+            propertyId: '',
+            assignedTo: ''
+          },
+          logForm: {
+            unitId: '',
+            priority: 'medium',
+            assignedTo: '',
+            description: '',
+            photoUrl: ''
+          },
+          editForm: {
+            status: 'open',
+            assignedTo: '',
+            resolutionNotes: ''
+          }
+        },
+        staff: {
+          loading: false,
+          saving: false,
+          error: '',
+          modal: '',
+          selectedMember: null,
+          members: [],
+          properties: [],
+          generatedInviteLink: '',
+          form: {
+            fullName: '',
+            email: '',
+            phone: '',
+            allProperties: true,
+            propertyIds: [],
+            canViewTenants: false,
+            canManageMaintenance: false,
+            canViewPayments: false,
+            canVerifyPayments: false,
+            canManageLeases: false
           }
         },
         tenantLease: {
@@ -2990,6 +3378,472 @@
           }
         },
 
+        priorityBadgeClass(priority) {
+          const classes = {
+            low: 'bg-slate-100 text-slate-600',
+            medium: 'bg-yellow-100 text-amber-700',
+            high: 'bg-red-100 text-red-700'
+          };
+          return classes[priority] || 'bg-slate-100 text-slate-600';
+        },
+
+        async loadMaintenanceData() {
+          if (this.profile?.role !== 'landlord' && !this.permissions.can_manage_maintenance) return;
+
+          this.maintenance.loading = true;
+          this.maintenance.error = '';
+
+          const [requestsResult, propertiesResult, unitsResult, leasesResult, staffResult] = await Promise.all([
+            supabaseClient
+              .from('maintenance_requests')
+              .select('id, unit_id, lease_id, landlord_id, submitted_by_profile_id, assigned_to_staff_id, description, photo_url, status, priority, resolution_notes, created_at, resolved_at')
+              .order('created_at', { ascending: false }),
+            supabaseClient
+              .from('properties')
+              .select('id, name, address, city')
+              .order('name', { ascending: true }),
+            supabaseClient
+              .from('units')
+              .select('id, property_id, unit_number, status, properties(id, name, address, city)')
+              .order('unit_number', { ascending: true }),
+            supabaseClient
+              .from('leases')
+              .select('id, unit_id, tenant_id, landlord_id, status, tenants(id, full_name, email)')
+              .eq('status', 'active'),
+            supabaseClient
+              .from('profiles')
+              .select('id, full_name, email, phone, role, landlord_id')
+              .eq('role', 'staff')
+              .order('full_name', { ascending: true })
+          ]);
+
+          const firstError = requestsResult.error || propertiesResult.error || unitsResult.error || leasesResult.error || staffResult.error;
+          if (firstError) {
+            this.maintenance.error = firstError.message;
+            this.maintenance.loading = false;
+            return;
+          }
+
+          this.maintenance.properties = propertiesResult.data || [];
+          this.maintenance.units = (unitsResult.data || []).map(unit => ({ ...unit, property: unit.properties || null }));
+          this.maintenance.leases = (leasesResult.data || []).map(lease => ({ ...lease, tenant: lease.tenants || null }));
+          this.maintenance.staff = (staffResult.data || []).map(profile => ({
+            profile_id: profile.id,
+            full_name: profile.full_name,
+            email: profile.email
+          }));
+          this.maintenance.requests = requestsResult.data || [];
+          this.maintenance.loading = false;
+        },
+
+        filteredMaintenanceRequests() {
+          return this.maintenance.requests.filter(request => {
+            const unit = this.maintenance.units.find(item => item.id === request.unit_id);
+            const statusMatches = !this.maintenance.filters.status || request.status === this.maintenance.filters.status;
+            const priorityMatches = !this.maintenance.filters.priority || request.priority === this.maintenance.filters.priority;
+            const propertyMatches = !this.maintenance.filters.propertyId || unit?.property_id === this.maintenance.filters.propertyId;
+            const assignedFilter = this.maintenance.filters.assignedTo;
+            const assignedMatches = !assignedFilter
+              || (assignedFilter === 'unassigned' && !request.assigned_to_staff_id)
+              || request.assigned_to_staff_id === assignedFilter;
+            return statusMatches && priorityMatches && propertyMatches && assignedMatches;
+          });
+        },
+
+        maintenanceUnitOptionLabel(unit) {
+          const property = unit.property || unit.properties || {};
+          return `${property.name || '-'} / Unit ${unit.unit_number || '-'}`;
+        },
+
+        maintenanceUnitLabel(request) {
+          const unit = this.maintenance.units.find(item => item.id === request.unit_id) || {};
+          return this.maintenanceUnitOptionLabel(unit);
+        },
+
+        staffName(staffProfileId) {
+          if (!staffProfileId) return 'Unassigned';
+          return this.maintenance.staff.find(staff => staff.profile_id === staffProfileId)?.full_name || 'Staff member';
+        },
+
+        activeLeaseForUnit(unitId) {
+          return this.maintenance.leases.find(lease => lease.unit_id === unitId && lease.status === 'active') || null;
+        },
+
+        openMaintenanceLogModal() {
+          this.maintenance.error = '';
+          this.maintenance.modal = 'log';
+          this.maintenance.logForm = {
+            unitId: '',
+            priority: 'medium',
+            assignedTo: '',
+            description: '',
+            photoUrl: ''
+          };
+        },
+
+        openMaintenanceEditModal(request) {
+          this.maintenance.error = '';
+          this.maintenance.selectedRequest = request;
+          this.maintenance.editForm = {
+            status: request.status || 'open',
+            assignedTo: request.assigned_to_staff_id || '',
+            resolutionNotes: request.resolution_notes || ''
+          };
+          this.maintenance.modal = 'edit';
+        },
+
+        closeMaintenanceModal() {
+          this.maintenance.modal = '';
+          this.maintenance.selectedRequest = null;
+          this.maintenance.saving = false;
+        },
+
+        async logMaintenanceRequest() {
+          this.maintenance.error = '';
+          this.maintenance.saving = true;
+
+          const activeLease = this.activeLeaseForUnit(this.maintenance.logForm.unitId);
+          const { error } = await supabaseClient
+            .from('maintenance_requests')
+            .insert({
+              unit_id: this.maintenance.logForm.unitId,
+              lease_id: activeLease?.id || null,
+              landlord_id: this.currentLandlordId(),
+              submitted_by_profile_id: this.profile.id,
+              assigned_to_staff_id: this.maintenance.logForm.assignedTo || null,
+              description: this.maintenance.logForm.description,
+              photo_url: this.maintenance.logForm.photoUrl || null,
+              status: 'open',
+              priority: this.maintenance.logForm.priority,
+              resolution_notes: null
+            });
+
+          if (error) {
+            this.maintenance.error = error.message;
+            this.maintenance.saving = false;
+            return;
+          }
+
+          this.closeMaintenanceModal();
+          await this.loadMaintenanceData();
+          if (this.propertyUnit.selectedUnit) await this.loadUnitDetail(this.propertyUnit.selectedUnit);
+        },
+
+        async saveMaintenanceUpdate() {
+          if (!this.maintenance.selectedRequest) return;
+
+          this.maintenance.error = '';
+          this.maintenance.saving = true;
+
+          const { error } = await supabaseClient
+            .from('maintenance_requests')
+            .update({
+              status: this.maintenance.editForm.status,
+              assigned_to_staff_id: this.maintenance.editForm.assignedTo || null,
+              resolution_notes: this.maintenance.editForm.resolutionNotes || null
+            })
+            .eq('id', this.maintenance.selectedRequest.id);
+
+          if (error) {
+            this.maintenance.error = error.message;
+            this.maintenance.saving = false;
+            return;
+          }
+
+          this.closeMaintenanceModal();
+          await this.loadMaintenanceData();
+          if (this.propertyUnit.selectedUnit) await this.loadUnitDetail(this.propertyUnit.selectedUnit);
+          await this.loadUnreadCount(this.profile.id);
+        },
+
+        defaultStaffForm() {
+          return {
+            fullName: '',
+            email: '',
+            phone: '',
+            allProperties: true,
+            propertyIds: [],
+            canViewTenants: false,
+            canManageMaintenance: false,
+            canViewPayments: false,
+            canVerifyPayments: false,
+            canManageLeases: false
+          };
+        },
+
+        staffFormPayload() {
+          return {
+            all_properties: Boolean(this.staff.form.allProperties),
+            property_ids: this.staff.form.allProperties ? [] : this.staff.form.propertyIds,
+            can_view_tenants: Boolean(this.staff.form.canViewTenants),
+            can_manage_maintenance: Boolean(this.staff.form.canManageMaintenance),
+            can_view_payments: Boolean(this.staff.form.canViewPayments),
+            can_verify_payments: Boolean(this.staff.form.canVerifyPayments),
+            can_manage_leases: Boolean(this.staff.form.canManageLeases)
+          };
+        },
+
+        staffFormFromMember(member) {
+          return {
+            fullName: member.full_name || '',
+            email: member.email || '',
+            phone: member.phone || '',
+            allProperties: Boolean(member.all_properties),
+            propertyIds: member.property_ids || [],
+            canViewTenants: Boolean(member.can_view_tenants),
+            canManageMaintenance: Boolean(member.can_manage_maintenance),
+            canViewPayments: Boolean(member.can_view_payments),
+            canVerifyPayments: Boolean(member.can_verify_payments),
+            canManageLeases: Boolean(member.can_manage_leases)
+          };
+        },
+
+        async loadStaffData() {
+          if (this.profile?.role !== 'landlord') return;
+
+          this.staff.loading = true;
+          this.staff.error = '';
+
+          const [propertiesResult, profilesResult, permissionsResult, invitesResult] = await Promise.all([
+            supabaseClient.from('properties').select('id, name, address, city').order('name', { ascending: true }),
+            supabaseClient.from('profiles').select('id, full_name, phone, email, role, created_at').eq('role', 'staff').order('created_at', { ascending: false }),
+            supabaseClient.from('staff_permissions').select('id, landlord_id, staff_profile_id, all_properties, property_ids, can_view_tenants, can_manage_maintenance, can_view_payments, can_verify_payments, can_manage_leases, invited_at, accepted_at'),
+            supabaseClient.from('invite_tokens').select('id, token, email, role, landlord_id, metadata, used, expires_at, created_at').eq('role', 'staff').eq('used', false).order('created_at', { ascending: false })
+          ]);
+
+          const firstError = propertiesResult.error || profilesResult.error || permissionsResult.error || invitesResult.error;
+          if (firstError) {
+            this.staff.error = firstError.message;
+            this.staff.loading = false;
+            return;
+          }
+
+          this.staff.properties = propertiesResult.data || [];
+          const permissionByProfile = new Map((permissionsResult.data || []).map(row => [row.staff_profile_id, row]));
+          const acceptedMembers = (profilesResult.data || []).map(profile => {
+            const permission = permissionByProfile.get(profile.id) || {};
+            return {
+              rowKey: `profile-${profile.id}`,
+              accepted: true,
+              profile_id: profile.id,
+              permission_id: permission.id || null,
+              invite_id: null,
+              invite_link: '',
+              full_name: profile.full_name,
+              email: profile.email,
+              phone: profile.phone || '',
+              created_at: profile.created_at,
+              invited_at: permission.invited_at || profile.created_at,
+              accepted_at: permission.accepted_at || profile.created_at,
+              all_properties: Boolean(permission.all_properties),
+              property_ids: permission.property_ids || [],
+              can_view_tenants: Boolean(permission.can_view_tenants),
+              can_manage_maintenance: Boolean(permission.can_manage_maintenance),
+              can_view_payments: Boolean(permission.can_view_payments),
+              can_verify_payments: Boolean(permission.can_verify_payments),
+              can_manage_leases: Boolean(permission.can_manage_leases)
+            };
+          });
+
+          const acceptedEmails = new Set(acceptedMembers.map(member => member.email.toLowerCase()));
+          const pendingMembers = (invitesResult.data || [])
+            .filter(invite => !acceptedEmails.has(invite.email.toLowerCase()))
+            .map(invite => {
+              const metadata = invite.metadata || {};
+              return {
+                rowKey: `invite-${invite.id}`,
+                accepted: false,
+                profile_id: null,
+                permission_id: null,
+                invite_id: invite.id,
+                invite_link: this.buildInviteLink(invite.token),
+                full_name: metadata.full_name || metadata.fullName || invite.email,
+                email: invite.email,
+                phone: metadata.phone || '',
+                created_at: invite.created_at,
+                invited_at: invite.created_at,
+                all_properties: Boolean(metadata.all_properties),
+                property_ids: metadata.property_ids || [],
+                can_view_tenants: Boolean(metadata.can_view_tenants),
+                can_manage_maintenance: Boolean(metadata.can_manage_maintenance),
+                can_view_payments: Boolean(metadata.can_view_payments),
+                can_verify_payments: Boolean(metadata.can_verify_payments),
+                can_manage_leases: Boolean(metadata.can_manage_leases)
+              };
+            });
+
+          this.staff.members = [...pendingMembers, ...acceptedMembers].sort((a, b) => new Date(b.invited_at || b.created_at).getTime() - new Date(a.invited_at || a.created_at).getTime());
+          this.staff.loading = false;
+        },
+
+        openStaffInviteModal() {
+          this.staff.error = '';
+          this.staff.generatedInviteLink = '';
+          this.staff.selectedMember = null;
+          this.staff.form = this.defaultStaffForm();
+          this.staff.modal = 'invite';
+        },
+
+        openStaffPermissionsModal(member) {
+          this.staff.error = '';
+          this.staff.generatedInviteLink = '';
+          this.staff.selectedMember = member;
+          this.staff.form = this.staffFormFromMember(member);
+          this.staff.modal = 'edit';
+        },
+
+        closeStaffModal() {
+          this.staff.modal = '';
+          this.staff.selectedMember = null;
+          this.staff.saving = false;
+        },
+
+        async createStaffInvite() {
+          this.staff.error = '';
+          this.staff.saving = true;
+          this.staff.generatedInviteLink = '';
+
+          const token = this.generateSecureToken();
+          const permissions = this.staffFormPayload();
+          const metadata = {
+            full_name: this.staff.form.fullName,
+            phone: this.staff.form.phone || '',
+            ...permissions
+          };
+
+          const { error } = await supabaseClient
+            .from('invite_tokens')
+            .insert({
+              token,
+              email: this.staff.form.email,
+              role: 'staff',
+              landlord_id: this.currentLandlordId(),
+              metadata,
+              expires_at: this.addHoursIso(48)
+            });
+
+          if (error) {
+            this.staff.error = error.message;
+            this.staff.saving = false;
+            return;
+          }
+
+          this.staff.generatedInviteLink = this.buildInviteLink(token);
+          this.closeStaffModal();
+          await this.loadStaffData();
+        },
+
+        async saveStaffPermissions() {
+          if (!this.staff.selectedMember) return;
+
+          this.staff.error = '';
+          this.staff.saving = true;
+          const permissions = this.staffFormPayload();
+          const member = this.staff.selectedMember;
+
+          if (member.accepted) {
+            const permissionPayload = {
+              landlord_id: this.currentLandlordId(),
+              staff_profile_id: member.profile_id,
+              ...permissions
+            };
+
+            const saveQuery = member.permission_id
+              ? supabaseClient.from('staff_permissions').update(permissions).eq('id', member.permission_id)
+              : supabaseClient.from('staff_permissions').insert(permissionPayload);
+
+            const { error } = await saveQuery;
+
+            if (error) {
+              this.staff.error = error.message;
+              this.staff.saving = false;
+              return;
+            }
+          } else {
+            const metadata = {
+              full_name: this.staff.form.fullName,
+              phone: this.staff.form.phone || '',
+              ...permissions
+            };
+
+            const { error } = await supabaseClient
+              .from('invite_tokens')
+              .update({ metadata })
+              .eq('id', member.invite_id);
+
+            if (error) {
+              this.staff.error = error.message;
+              this.staff.saving = false;
+              return;
+            }
+          }
+
+          this.closeStaffModal();
+          await this.loadStaffData();
+        },
+
+        async removeStaff(member) {
+          this.staff.error = '';
+          this.staff.saving = true;
+
+          if (member.accepted) {
+            const { error: permissionError } = await supabaseClient
+              .from('staff_permissions')
+              .delete()
+              .eq('staff_profile_id', member.profile_id);
+
+            if (permissionError) {
+              this.staff.error = permissionError.message;
+              this.staff.saving = false;
+              return;
+            }
+
+            const { error: profileError } = await supabaseClient
+              .from('profiles')
+              .delete()
+              .eq('id', member.profile_id);
+
+            if (profileError) {
+              this.staff.error = profileError.message;
+              this.staff.saving = false;
+              return;
+            }
+          } else {
+            const { error } = await supabaseClient
+              .from('invite_tokens')
+              .delete()
+              .eq('id', member.invite_id);
+
+            if (error) {
+              this.staff.error = error.message;
+              this.staff.saving = false;
+              return;
+            }
+          }
+
+          this.staff.saving = false;
+          await this.loadStaffData();
+          await this.loadMaintenanceData();
+        },
+
+        staffPropertyScopeLabel(member) {
+          if (member.all_properties) return 'All properties';
+          const names = (member.property_ids || [])
+            .map(propertyId => this.staff.properties.find(property => property.id === propertyId)?.name)
+            .filter(Boolean);
+          return names.length ? names.join(', ') : 'No properties';
+        },
+
+        staffPermissionBadges(member) {
+          const badges = [];
+          if (member.can_view_tenants) badges.push('Tenants');
+          if (member.can_manage_maintenance) badges.push('Maintenance');
+          if (member.can_view_payments) badges.push('View Payments');
+          if (member.can_verify_payments) badges.push('Verify Payments');
+          if (member.can_manage_leases) badges.push('Leases');
+          return badges.length ? badges : ['No permissions'];
+        },
+
         maintenanceBadgeClass(status) {
           const classes = {
             open: 'bg-yellow-100 text-amber-700',
@@ -3393,6 +4247,14 @@
 
           if (page === 'payments' && this.currentShell === 'app') {
             await this.loadPaymentsData();
+          }
+
+          if (page === 'maintenance' && this.currentShell === 'app') {
+            await this.loadMaintenanceData();
+          }
+
+          if (page === 'staff' && this.currentShell === 'app') {
+            await this.loadStaffData();
           }
 
           if (page === 'my-account' && this.currentShell === 'app') {
