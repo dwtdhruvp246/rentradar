@@ -984,6 +984,7 @@
                                 <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="maintenanceBadgeClass(request.status)" x-text="titleCase(request.status)"></span>
                               </div>
                               <p class="mt-1 text-xs text-slate-500" x-text="`${titleCase(request.priority)} priority - ${formatDate(request.created_at)}`"></p>
+                              <button x-show="maintenancePhotoPath(request)" class="mt-2 text-xs font-semibold text-emerald-700 underline" type="button" @click="openMaintenancePhoto(request)">View photo</button>
                             </div>
                           </template>
                         </div>
@@ -1279,12 +1280,7 @@
                               <td class="px-4 py-3 text-slate-700" x-text="formatDate(submission.payment_date)"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="titleCase(submission.payment_method)"></td>
                               <td class="max-w-48 truncate px-4 py-3 text-slate-700" x-text="submission.reference_note || '-'"></td>
-                              <td class="px-4 py-3">
-                                <a x-show="submission.proof_image_url" :href="submission.proof_image_url" target="_blank" rel="noreferrer" class="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                                  <img class="h-full w-full object-cover" :src="submission.proof_image_url" alt="Payment proof">
-                                </a>
-                                <span x-show="!submission.proof_image_url" class="text-slate-400">-</span>
-                              </td>
+                              <td class="px-4 py-3"><button x-show="paymentProofPath(submission)" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openPaymentProof(submission)">View</button><span x-show="!paymentProofPath(submission)" class="text-slate-400">-</span></td>
                               <td class="px-4 py-3 text-slate-700" x-text="formatDate(submission.created_at)"></td>
                               <td class="px-4 py-3">
                                 <div class="flex flex-wrap gap-2">
@@ -1503,7 +1499,10 @@
                               <td class="px-4 py-3 text-slate-700" x-text="staffName(request.assigned_to_staff_id)"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="formatDate(request.created_at)"></td>
                               <td class="px-4 py-3">
-                                <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openMaintenanceEditModal(request)">Update</button>
+                                <div class="flex flex-wrap gap-2">
+                                  <button x-show="maintenancePhotoPath(request)" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openMaintenancePhoto(request)">Photo</button>
+                                  <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openMaintenanceEditModal(request)">Update</button>
+                                </div>
                               </td>
                             </tr>
                           </template>
@@ -1555,8 +1554,9 @@
                           <textarea class="min-h-28 w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model.trim="maintenance.logForm.description" required></textarea>
                         </label>
                         <label class="block sm:col-span-2">
-                          <span class="mb-2 block text-sm font-medium text-slate-700">Photo URL</span>
-                          <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="url" x-model.trim="maintenance.logForm.photoUrl">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Photo</span>
+                          <input x-ref="maintenanceLogPhotoInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="image/jpeg,image/png,image/webp" @change="handleImageSelection($event, 'maintenanceLog', 'photoFile')">
+                          <span class="mt-1 block text-xs text-slate-500">JPEG, PNG, or WebP. Max 10 MB.</span>
                         </label>
                         <div class="flex justify-end gap-3 sm:col-span-2">
                           <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closeMaintenanceModal">Cancel</button>
@@ -2075,8 +2075,9 @@
                     <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="tenant.paymentForm.reference">
                   </label>
                   <label class="block sm:col-span-2">
-                    <span class="mb-2 block text-sm font-medium text-slate-700">Proof image URL</span>
-                    <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="url" x-model.trim="tenant.paymentForm.proofUrl">
+                    <span class="mb-2 block text-sm font-medium text-slate-700">Proof image</span>
+                    <input x-ref="tenantPaymentProofInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="image/jpeg,image/png,image/webp" @change="handleImageSelection($event, 'tenantPayment', 'proofFile')">
+                    <span class="mt-1 block text-xs text-slate-500">JPEG, PNG, or WebP. Max 10 MB.</span>
                   </label>
                   <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60 sm:col-span-2" type="submit" :disabled="tenant.saving">Submit Payment</button>
                 </form>
@@ -2092,6 +2093,7 @@
                         <div><p class="text-sm font-semibold text-slate-900" x-text="formatCurrency(submission.amount_claimed)"></p><p class="mt-1 text-xs text-slate-500" x-text="`${formatDate(submission.payment_date)} - ${titleCase(submission.payment_method)}`"></p></div>
                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="submissionStatusBadgeClass(submission.status)" x-text="titleCase(submission.status)"></span>
                       </div>
+                      <button x-show="paymentProofPath(submission)" class="mt-2 text-xs font-semibold text-emerald-700 underline" type="button" @click="openPaymentProof(submission)">View proof image</button>
                       <p x-show="submission.rejection_reason" class="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700" x-text="submission.rejection_reason"></p>
                     </div>
                   </template>
@@ -2131,8 +2133,9 @@
                     <textarea class="min-h-28 w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model.trim="tenant.maintenanceForm.description" required></textarea>
                   </label>
                   <label class="block">
-                    <span class="mb-2 block text-sm font-medium text-slate-700">Photo URL</span>
-                    <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="url" x-model.trim="tenant.maintenanceForm.photoUrl">
+                    <span class="mb-2 block text-sm font-medium text-slate-700">Photo</span>
+                    <input x-ref="tenantMaintenancePhotoInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="image/jpeg,image/png,image/webp" @change="handleImageSelection($event, 'tenantMaintenance', 'photoFile')">
+                    <span class="mt-1 block text-xs text-slate-500">JPEG, PNG, or WebP. Max 10 MB.</span>
                   </label>
                   <button class="w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="tenant.saving">Submit Request</button>
                 </form>
@@ -2149,6 +2152,7 @@
                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="maintenanceBadgeClass(request.status)" x-text="titleCase(request.status)"></span>
                       </div>
                       <p class="mt-1 text-xs text-slate-500" x-text="`${titleCase(request.priority)} priority - ${formatDate(request.created_at)}`"></p>
+                      <button x-show="maintenancePhotoPath(request)" class="mt-2 text-xs font-semibold text-emerald-700 underline" type="button" @click="openMaintenancePhoto(request)">View photo</button>
                       <p x-show="request.resolution_notes" class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700" x-text="request.resolution_notes"></p>
                     </div>
                   </template>
@@ -2222,6 +2226,9 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const LEASE_DOCUMENT_BUCKET = 'lease-documents';
     const MAX_LEASE_DOCUMENT_SIZE = 20 * 1024 * 1024;
+    const PAYMENT_PROOF_BUCKET = 'payment-proofs';
+    const MAINTENANCE_PHOTO_BUCKET = 'maintenance-photos';
+    const MAX_IMAGE_UPLOAD_SIZE = 10 * 1024 * 1024;
 
     function rentRadarApp() {
       return {
@@ -2404,7 +2411,7 @@
             priority: 'medium',
             assignedTo: '',
             description: '',
-            photoUrl: ''
+            photoFile: null
           },
           editForm: {
             status: 'open',
@@ -2473,12 +2480,12 @@
             date: '',
             method: 'bank_transfer',
             reference: '',
-            proofUrl: ''
+            proofFile: null
           },
           maintenanceForm: {
             priority: 'medium',
             description: '',
-            photoUrl: ''
+            photoFile: null
           }
         },
         tenantLease: {
@@ -3505,7 +3512,7 @@
             activeLease
               ? supabaseClient.from('payments').select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, recorded_by, created_at').eq('lease_id', activeLease.id).order('payment_date', { ascending: false })
               : Promise.resolve({ data: [], error: null }),
-            supabaseClient.from('maintenance_requests').select('id, unit_id, lease_id, description, status, priority, resolution_notes, created_at, resolved_at').eq('unit_id', unit.id).order('created_at', { ascending: false })
+            supabaseClient.from('maintenance_requests').select('id, unit_id, lease_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at').eq('unit_id', unit.id).order('created_at', { ascending: false })
           ]);
 
           const firstError = paymentsResult.error || maintenanceResult.error;
@@ -3682,7 +3689,7 @@
           const [pendingResult, verifiedResult, leasesResult] = await Promise.all([
             supabaseClient
               .from('payment_submissions')
-              .select('id, lease_id, tenant_id, amount_claimed, payment_date, payment_method, reference_note, proof_image_url, status, rejection_reason, reviewed_by, reviewed_at, created_at, tenants(id, full_name, email), leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
+              .select('id, lease_id, tenant_id, amount_claimed, payment_date, payment_method, reference_note, proof_image_url, proof_image_path, proof_image_name, proof_image_size, proof_image_uploaded_by, proof_image_uploaded_at, status, rejection_reason, reviewed_by, reviewed_at, created_at, tenants(id, full_name, email), leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
               .eq('status', 'pending')
               .order('created_at', { ascending: false }),
             supabaseClient
@@ -3962,7 +3969,7 @@
           const [requestsResult, propertiesResult, unitsResult, leasesResult, staffResult] = await Promise.all([
             supabaseClient
               .from('maintenance_requests')
-              .select('id, unit_id, lease_id, landlord_id, submitted_by_profile_id, assigned_to_staff_id, description, photo_url, status, priority, resolution_notes, created_at, resolved_at')
+              .select('id, unit_id, lease_id, landlord_id, submitted_by_profile_id, assigned_to_staff_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at')
               .order('created_at', { ascending: false }),
             supabaseClient
               .from('properties')
@@ -4043,8 +4050,9 @@
             priority: 'medium',
             assignedTo: '',
             description: '',
-            photoUrl: ''
+            photoFile: null
           };
+          if (this.$refs.maintenanceLogPhotoInput) this.$refs.maintenanceLogPhotoInput.value = '';
         },
 
         openMaintenanceEditModal(request) {
@@ -4069,7 +4077,8 @@
           this.maintenance.saving = true;
 
           const activeLease = this.activeLeaseForUnit(this.maintenance.logForm.unitId);
-          const { error } = await supabaseClient
+          const photoFile = this.maintenance.logForm.photoFile;
+          const { data: requestRow, error } = await supabaseClient
             .from('maintenance_requests')
             .insert({
               unit_id: this.maintenance.logForm.unitId,
@@ -4078,16 +4087,28 @@
               submitted_by_profile_id: this.profile.id,
               assigned_to_staff_id: this.maintenance.logForm.assignedTo || null,
               description: this.maintenance.logForm.description,
-              photo_url: this.maintenance.logForm.photoUrl || null,
               status: 'open',
               priority: this.maintenance.logForm.priority,
               resolution_notes: null
-            });
+            })
+            .select('id, landlord_id')
+            .single();
 
           if (error) {
             this.maintenance.error = error.message;
             this.maintenance.saving = false;
             return;
+          }
+
+          if (photoFile) {
+            try {
+              await this.attachMaintenancePhoto(requestRow, photoFile);
+            } catch (error) {
+              this.maintenance.error = `Request was saved, but the photo upload failed: ${error.message}`;
+              this.maintenance.saving = false;
+              await this.loadMaintenanceData();
+              return;
+            }
           }
 
           this.closeMaintenanceModal();
@@ -4487,12 +4508,12 @@
               .order('payment_date', { ascending: false }),
             supabaseClient
               .from('payment_submissions')
-              .select('id, lease_id, tenant_id, amount_claimed, payment_date, payment_method, reference_note, proof_image_url, status, rejection_reason, reviewed_at, created_at')
+              .select('id, lease_id, tenant_id, amount_claimed, payment_date, payment_method, reference_note, proof_image_url, proof_image_path, proof_image_name, proof_image_size, proof_image_uploaded_by, proof_image_uploaded_at, status, rejection_reason, reviewed_at, created_at')
               .in('lease_id', leaseIds)
               .order('created_at', { ascending: false }),
             supabaseClient
               .from('maintenance_requests')
-              .select('id, unit_id, lease_id, landlord_id, submitted_by_profile_id, description, photo_url, status, priority, resolution_notes, created_at, resolved_at')
+              .select('id, unit_id, lease_id, landlord_id, submitted_by_profile_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at')
               .in('lease_id', leaseIds)
               .order('created_at', { ascending: false })
           ]);
@@ -4517,13 +4538,15 @@
             date: new Date().toISOString().slice(0, 10),
             method: 'bank_transfer',
             reference: '',
-            proofUrl: ''
+            proofFile: null
           };
           this.tenant.maintenanceForm = {
             priority: 'medium',
             description: '',
-            photoUrl: ''
+            photoFile: null
           };
+          if (this.$refs.tenantPaymentProofInput) this.$refs.tenantPaymentProofInput.value = '';
+          if (this.$refs.tenantMaintenancePhotoInput) this.$refs.tenantMaintenancePhotoInput.value = '';
         },
 
         tenantHomeSubtitle() {
@@ -4575,7 +4598,8 @@
           this.tenant.error = '';
           this.tenant.saving = true;
 
-          const { error } = await supabaseClient
+          const proofFile = this.tenant.paymentForm.proofFile;
+          const { data: submissionRow, error } = await supabaseClient
             .from('payment_submissions')
             .insert({
               lease_id: lease.id,
@@ -4584,14 +4608,26 @@
               payment_date: this.tenant.paymentForm.date,
               payment_method: this.tenant.paymentForm.method,
               reference_note: this.tenant.paymentForm.reference || null,
-              proof_image_url: this.tenant.paymentForm.proofUrl || null,
               status: 'pending'
-            });
+            })
+            .select('id')
+            .single();
 
           if (error) {
             this.tenant.error = error.message;
             this.tenant.saving = false;
             return;
+          }
+
+          if (proofFile) {
+            try {
+              await this.attachPaymentProof(submissionRow, proofFile, lease.landlord_id);
+            } catch (error) {
+              this.tenant.error = `Payment was submitted, but the proof upload failed: ${error.message}`;
+              this.tenant.saving = false;
+              await this.loadTenantData();
+              return;
+            }
           }
 
           this.tenant.saving = false;
@@ -4608,7 +4644,8 @@
           this.tenant.error = '';
           this.tenant.saving = true;
 
-          const { error } = await supabaseClient
+          const photoFile = this.tenant.maintenanceForm.photoFile;
+          const { data: requestRow, error } = await supabaseClient
             .from('maintenance_requests')
             .insert({
               unit_id: lease.unit_id,
@@ -4617,16 +4654,28 @@
               submitted_by_profile_id: this.profile.id,
               assigned_to_staff_id: null,
               description: this.tenant.maintenanceForm.description,
-              photo_url: this.tenant.maintenanceForm.photoUrl || null,
               status: 'open',
               priority: this.tenant.maintenanceForm.priority,
               resolution_notes: null
-            });
+            })
+            .select('id, landlord_id')
+            .single();
 
           if (error) {
             this.tenant.error = error.message;
             this.tenant.saving = false;
             return;
+          }
+
+          if (photoFile) {
+            try {
+              await this.attachMaintenancePhoto(requestRow, photoFile);
+            } catch (error) {
+              this.tenant.error = `Request was submitted, but the photo upload failed: ${error.message}`;
+              this.tenant.saving = false;
+              await this.loadTenantData();
+              return;
+            }
           }
 
           this.tenant.saving = false;
@@ -4888,6 +4937,164 @@
           }
 
           this.tenantLease.saving = false;
+        },
+
+        imageFormTarget(target) {
+          const targets = {
+            tenantPayment: { form: this.tenant.paymentForm, errorScope: 'tenant', inputRef: 'tenantPaymentProofInput' },
+            tenantMaintenance: { form: this.tenant.maintenanceForm, errorScope: 'tenant', inputRef: 'tenantMaintenancePhotoInput' },
+            maintenanceLog: { form: this.maintenance.logForm, errorScope: 'maintenance', inputRef: 'maintenanceLogPhotoInput' }
+          };
+          return targets[target] || null;
+        },
+
+        setImageUploadError(scope, message) {
+          if (scope === 'maintenance') {
+            this.maintenance.error = message;
+          } else if (scope === 'payments') {
+            this.payments.error = message;
+          } else {
+            this.tenant.error = message;
+          }
+        },
+
+        validateImageFile(file) {
+          if (!file) return;
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+          const allowedExtension = /\.(jpe?g|png|webp)$/i.test(file.name);
+          if (!allowedTypes.includes(file.type) && !allowedExtension) {
+            throw new Error('Image must be a JPEG, PNG, or WebP file.');
+          }
+          if (file.size > MAX_IMAGE_UPLOAD_SIZE) throw new Error('Image must be 10 MB or smaller.');
+        },
+
+        handleImageSelection(event, target, fieldName) {
+          const targetConfig = this.imageFormTarget(target);
+          if (!targetConfig) return;
+
+          const file = event.target.files?.[0] || null;
+          this.setImageUploadError(targetConfig.errorScope, '');
+
+          try {
+            if (file) this.validateImageFile(file);
+            targetConfig.form[fieldName] = file;
+          } catch (error) {
+            event.target.value = '';
+            targetConfig.form[fieldName] = null;
+            this.setImageUploadError(targetConfig.errorScope, error.message);
+          }
+        },
+
+        sanitizeImageName(fileName) {
+          const cleaned = String(fileName || 'upload.jpg')
+            .replace(/[^a-zA-Z0-9._-]/g, '-')
+            .replace(/-+/g, '-')
+            .slice(0, 120);
+          return /\.(jpe?g|png|webp)$/i.test(cleaned) ? cleaned : `${cleaned}.jpg`;
+        },
+
+        async uploadPrivateImage(bucket, landlordId, rowId, file) {
+          this.validateImageFile(file);
+          const safeName = this.sanitizeImageName(file.name);
+          const objectPath = `${landlordId}/${rowId}/${Date.now()}-${this.generateSecureToken().slice(0, 16)}-${safeName}`;
+          const { error } = await supabaseClient.storage
+            .from(bucket)
+            .upload(objectPath, file, {
+              cacheControl: '3600',
+              contentType: file.type || 'image/jpeg',
+              upsert: false
+            });
+
+          if (error) throw error;
+          return objectPath;
+        },
+
+        paymentProofPath(submission) {
+          return submission?.proof_image_path || submission?.proof_image_url || '';
+        },
+
+        maintenancePhotoPath(request) {
+          return request?.photo_path || request?.photo_url || '';
+        },
+
+        async openPrivateImage(bucket, path, fileName, errorScope) {
+          if (!path) return;
+
+          if (/^https?:\/\//i.test(path)) {
+            window.open(path, '_blank', 'noopener,noreferrer');
+            return;
+          }
+
+          const imageWindow = window.open('', '_blank');
+          if (imageWindow) imageWindow.opener = null;
+
+          const { data, error } = await supabaseClient.storage
+            .from(bucket)
+            .createSignedUrl(path, 300, { download: fileName || 'image' });
+
+          if (error) {
+            if (imageWindow) imageWindow.close();
+            this.setImageUploadError(errorScope, error.message);
+            return;
+          }
+
+          if (imageWindow) {
+            imageWindow.location.href = data.signedUrl;
+          } else {
+            window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+          }
+        },
+
+        openPaymentProof(submission) {
+          return this.openPrivateImage(
+            PAYMENT_PROOF_BUCKET,
+            this.paymentProofPath(submission),
+            submission?.proof_image_name || 'payment-proof',
+            this.currentShell === 'tenant' ? 'tenant' : 'payments'
+          );
+        },
+
+        openMaintenancePhoto(request) {
+          return this.openPrivateImage(
+            MAINTENANCE_PHOTO_BUCKET,
+            this.maintenancePhotoPath(request),
+            request?.photo_name || 'maintenance-photo',
+            this.currentShell === 'tenant' ? 'tenant' : 'maintenance'
+          );
+        },
+
+        async attachPaymentProof(submission, file, landlordId) {
+          if (!file || !submission?.id) return;
+
+          const objectPath = await this.uploadPrivateImage(PAYMENT_PROOF_BUCKET, landlordId, submission.id, file);
+          const { error } = await supabaseClient.rpc('attach_payment_proof', {
+            p_submission_id: submission.id,
+            p_path: objectPath,
+            p_name: file.name,
+            p_size: file.size
+          });
+
+          if (error) {
+            await supabaseClient.storage.from(PAYMENT_PROOF_BUCKET).remove([objectPath]);
+            throw error;
+          }
+        },
+
+        async attachMaintenancePhoto(request, file) {
+          if (!file || !request?.id) return;
+
+          const objectPath = await this.uploadPrivateImage(MAINTENANCE_PHOTO_BUCKET, request.landlord_id, request.id, file);
+          const { error } = await supabaseClient.rpc('attach_maintenance_photo', {
+            p_request_id: request.id,
+            p_path: objectPath,
+            p_name: file.name,
+            p_size: file.size
+          });
+
+          if (error) {
+            await supabaseClient.storage.from(MAINTENANCE_PHOTO_BUCKET).remove([objectPath]);
+            throw error;
+          }
         },
 
         async viewTenant(tenant) {
@@ -5596,12 +5803,12 @@
               date: '',
               method: 'bank_transfer',
               reference: '',
-              proofUrl: ''
+              proofFile: null
             },
             maintenanceForm: {
               priority: 'medium',
               description: '',
-              photoUrl: ''
+              photoFile: null
             }
           };
           this.settings = {
