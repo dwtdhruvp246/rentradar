@@ -728,16 +728,16 @@
                 </div>
               </template>
 
-              <template x-if="currentPage === 'units'">
+              <template x-if="currentPage === 'properties' && propertyUnit.selectedPropertyId">
                 <div class="space-y-6">
                   <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                     <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <h1 class="text-xl font-bold text-slate-900">Units</h1>
-                        <p class="mt-1 text-sm text-slate-500" x-text="propertyUnit.selectedPropertyId ? `Filtered by ${propertyName(propertyUnit.selectedPropertyId)}` : 'All units across your properties.'"></p>
+                        <h1 class="text-xl font-bold text-slate-900" x-text="`Units - ${propertyName(propertyUnit.selectedPropertyId)}`"></h1>
+                        <p class="mt-1 text-sm text-slate-500">Manage only the units linked to this property.</p>
                       </div>
                       <div class="flex flex-wrap gap-2">
-                        <button x-show="propertyUnit.selectedPropertyId" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="propertyUnit.selectedPropertyId = ''">Clear Filter</button>
+                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="closePropertyUnits">Close Units</button>
                         <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="refreshCurrentPage">Refresh</button>
                       </div>
                     </div>
@@ -2092,9 +2092,9 @@
                     <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="tenant.paymentForm.reference">
                   </label>
                   <label class="block sm:col-span-2">
-                    <span class="mb-2 block text-sm font-medium text-slate-700">Proof image</span>
-                    <input x-ref="tenantPaymentProofInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="image/jpeg,image/png,image/webp" @change="handleImageSelection($event, 'tenantPayment', 'proofFile')">
-                    <span class="mt-1 block text-xs text-slate-500">JPEG, PNG, or WebP. Max 10 MB.</span>
+                    <span class="mb-2 block text-sm font-medium text-slate-700">Proof file</span>
+                    <input x-ref="tenantPaymentProofInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" @change="handleImageSelection($event, 'tenantPayment', 'proofFile')">
+                    <span class="mt-1 block text-xs text-slate-500">JPEG, PNG, WebP, or PDF. Max 10 MB.</span>
                   </label>
                   <button class="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60 sm:col-span-2" type="submit" :disabled="tenant.saving">Submit Payment</button>
                 </form>
@@ -2110,7 +2110,7 @@
                         <div><p class="text-sm font-semibold text-slate-900" x-text="formatCurrency(submission.amount_claimed)"></p><p class="mt-1 text-xs text-slate-500" x-text="`${formatDate(submission.payment_date)} - ${titleCase(submission.payment_method)}`"></p></div>
                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="submissionStatusBadgeClass(submission.status)" x-text="titleCase(submission.status)"></span>
                       </div>
-                      <button x-show="paymentProofPath(submission)" class="mt-2 text-xs font-semibold text-emerald-700 underline" type="button" @click="openPaymentProof(submission)">View proof image</button>
+                      <button x-show="paymentProofPath(submission)" class="mt-2 text-xs font-semibold text-emerald-700 underline" type="button" @click="openPaymentProof(submission)">View proof</button>
                       <p x-show="submission.rejection_reason" class="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700" x-text="submission.rejection_reason"></p>
                     </div>
                   </template>
@@ -2246,6 +2246,7 @@
     const PAYMENT_PROOF_BUCKET = 'payment-proofs';
     const MAINTENANCE_PHOTO_BUCKET = 'maintenance-photos';
     const MAX_IMAGE_UPLOAD_SIZE = 10 * 1024 * 1024;
+    const MAX_PAYMENT_PROOF_UPLOAD_SIZE = 10 * 1024 * 1024;
 
     function rentRadarApp() {
       return {
@@ -2847,7 +2848,8 @@
 
         restorePage(defaultPage) {
           const storedPage = this.readStoredPage();
-          return this.isPageAllowed(storedPage) ? storedPage : defaultPage;
+          const normalizedPage = storedPage === 'units' ? 'properties' : storedPage;
+          return this.isPageAllowed(normalizedPage) ? normalizedPage : defaultPage;
         },
 
         resolveActivePage(defaultPage, previousShell, previousPage) {
@@ -3240,7 +3242,6 @@
           const items = [
             { page: 'dashboard', label: 'Dashboard', icon: 'dashboard', visible: true },
             { page: 'properties', label: 'Properties', icon: 'building', visible: this.canShowAppPage('properties') },
-            { page: 'units', label: 'Units', icon: 'grid', visible: this.canShowAppPage('units') },
             { page: 'tenants', label: 'Tenants', icon: 'users', visible: this.canShowAppPage('tenants') },
             { page: 'leases', label: 'Leases', icon: 'file', visible: this.canShowAppPage('leases') },
             { page: 'payments', label: 'Payments', icon: 'card', visible: this.canShowAppPage('payments') },
@@ -3269,7 +3270,6 @@
 
           const permissionMap = {
             properties: true,
-            units: true,
             tenants: this.permissions.can_view_tenants,
             leases: this.permissions.can_manage_leases,
             payments: this.permissions.can_view_payments || this.permissions.can_verify_payments,
@@ -3615,11 +3615,24 @@
         openPropertyUnits(propertyId) {
           this.propertyUnit.selectedPropertyId = propertyId;
           this.propertyUnit.unitForm.propertyId = propertyId;
-          this.navigate('units');
+          if (this.propertyUnit.selectedUnit?.property_id !== propertyId) {
+            this.propertyUnit.selectedUnit = null;
+            this.propertyUnit.currentLease = null;
+            this.propertyUnit.detailMode = '';
+          }
+          if (this.currentPage !== 'properties') this.navigate('properties');
+        },
+
+        closePropertyUnits() {
+          this.propertyUnit.selectedPropertyId = '';
+          this.propertyUnit.unitForm.propertyId = '';
+          this.propertyUnit.selectedUnit = null;
+          this.propertyUnit.currentLease = null;
+          this.propertyUnit.detailMode = '';
         },
 
         filteredUnits() {
-          if (!this.propertyUnit.selectedPropertyId) return this.propertyUnit.units;
+          if (!this.propertyUnit.selectedPropertyId) return [];
           return this.propertyUnit.units.filter(unit => unit.property_id === this.propertyUnit.selectedPropertyId);
         },
 
@@ -5180,6 +5193,16 @@
           if (file.size > MAX_IMAGE_UPLOAD_SIZE) throw new Error('Image must be 10 MB or smaller.');
         },
 
+        validatePaymentProofFile(file) {
+          if (!file) return;
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+          const allowedExtension = /\.(jpe?g|png|webp|pdf)$/i.test(file.name);
+          if (!allowedTypes.includes(file.type) && !allowedExtension) {
+            throw new Error('Payment proof must be a JPEG, PNG, WebP, or PDF file.');
+          }
+          if (file.size > MAX_PAYMENT_PROOF_UPLOAD_SIZE) throw new Error('Payment proof must be 10 MB or smaller.');
+        },
+
         handleImageSelection(event, target, fieldName) {
           const targetConfig = this.imageFormTarget(target);
           if (!targetConfig) return;
@@ -5188,7 +5211,13 @@
           this.setImageUploadError(targetConfig.errorScope, '');
 
           try {
-            if (file) this.validateImageFile(file);
+            if (file) {
+              if (target === 'tenantPayment') {
+                this.validatePaymentProofFile(file);
+              } else {
+                this.validateImageFile(file);
+              }
+            }
             targetConfig.form[fieldName] = file;
           } catch (error) {
             event.target.value = '';
@@ -5205,6 +5234,19 @@
           return /\.(jpe?g|png|webp)$/i.test(cleaned) ? cleaned : `${cleaned}.jpg`;
         },
 
+        sanitizePaymentProofName(fileName) {
+          const cleaned = String(fileName || 'payment-proof.pdf')
+            .replace(/[^a-zA-Z0-9._-]/g, '-')
+            .replace(/-+/g, '-')
+            .slice(0, 120);
+          return /\.(jpe?g|png|webp|pdf)$/i.test(cleaned) ? cleaned : `${cleaned}.pdf`;
+        },
+
+        paymentProofContentType(file) {
+          if (file?.type) return file.type;
+          return /\.pdf$/i.test(file?.name || '') ? 'application/pdf' : 'image/jpeg';
+        },
+
         async uploadPrivateImage(bucket, landlordId, rowId, file) {
           this.validateImageFile(file);
           const safeName = this.sanitizeImageName(file.name);
@@ -5214,6 +5256,22 @@
             .upload(objectPath, file, {
               cacheControl: '3600',
               contentType: file.type || 'image/jpeg',
+              upsert: false
+            });
+
+          if (error) throw error;
+          return objectPath;
+        },
+
+        async uploadPaymentProofFile(landlordId, rowId, file) {
+          this.validatePaymentProofFile(file);
+          const safeName = this.sanitizePaymentProofName(file.name);
+          const objectPath = `${landlordId}/${rowId}/${Date.now()}-${this.generateSecureToken().slice(0, 16)}-${safeName}`;
+          const { error } = await supabaseClient.storage
+            .from(PAYMENT_PROOF_BUCKET)
+            .upload(objectPath, file, {
+              cacheControl: '3600',
+              contentType: this.paymentProofContentType(file),
               upsert: false
             });
 
@@ -5278,7 +5336,7 @@
         async attachPaymentProof(submission, file, landlordId) {
           if (!file || !submission?.id) return;
 
-          const objectPath = await this.uploadPrivateImage(PAYMENT_PROOF_BUCKET, landlordId, submission.id, file);
+          const objectPath = await this.uploadPaymentProofFile(landlordId, submission.id, file);
           const { error } = await supabaseClient.rpc('attach_payment_proof', {
             p_submission_id: submission.id,
             p_path: objectPath,
@@ -5884,7 +5942,7 @@
 
           if (this.currentShell === 'app') {
             if (this.currentPage === 'dashboard') await this.loadDashboardData();
-            if (this.currentPage === 'properties' || this.currentPage === 'units') await this.loadPropertyUnitData();
+          if (this.currentPage === 'properties') await this.loadPropertyUnitData();
             if (this.currentPage === 'tenants' || this.currentPage === 'leases') await this.loadTenantLeaseData();
             if (this.currentPage === 'payments') await this.loadPaymentsData();
             if (this.currentPage === 'maintenance') await this.loadMaintenanceData();
@@ -5914,7 +5972,7 @@
             await this.loadDashboardData();
           }
 
-          if ((page === 'properties' || page === 'units') && this.currentShell === 'app') {
+          if (page === 'properties' && this.currentShell === 'app') {
             await this.loadPropertyUnitData();
           }
 
@@ -5965,7 +6023,6 @@
           const titles = {
             dashboard: 'Dashboard',
             properties: 'Properties',
-            units: 'Units',
             tenants: 'Tenants',
             leases: 'Leases',
             payments: 'Payments',
