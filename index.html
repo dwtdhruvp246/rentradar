@@ -4513,31 +4513,19 @@
         },
 
         async removeStaff(member) {
-          const confirmed = window.confirm(`Delete ${member.full_name || member.email}?`);
+          const confirmed = window.confirm(`Delete ${member.full_name || member.email}?${member.accepted ? ' This also deletes their login account.' : ''}`);
           if (!confirmed) return;
 
           this.staff.error = '';
           this.staff.saving = true;
 
           if (member.accepted) {
-            const { error: permissionError } = await supabaseClient
-              .from('staff_permissions')
-              .delete()
-              .eq('staff_profile_id', member.profile_id);
+            const { error } = await supabaseClient.rpc('delete_staff_account', {
+              p_profile_id: member.profile_id
+            });
 
-            if (permissionError) {
-              this.staff.error = permissionError.message;
-              this.staff.saving = false;
-              return;
-            }
-
-            const { error: profileError } = await supabaseClient
-              .from('profiles')
-              .delete()
-              .eq('id', member.profile_id);
-
-            if (profileError) {
-              this.staff.error = profileError.message;
+            if (error) {
+              this.staff.error = error.message;
               this.staff.saving = false;
               return;
             }
@@ -4921,30 +4909,17 @@
 
         async deleteTenant(tenant) {
           if (!tenant) return;
-          const confirmed = window.confirm(`Delete ${tenant.full_name}? This also deletes linked leases, payment history, submissions, and maintenance records.`);
+          const confirmed = window.confirm(`Delete ${tenant.full_name}? This also deletes their login account, linked leases, payment history, submissions, and maintenance records.`);
           if (!confirmed) return;
 
           this.tenantLease.error = '';
-          const { error } = await supabaseClient
-            .from('tenants')
-            .delete()
-            .eq('id', tenant.id);
+          const { error } = await supabaseClient.rpc('delete_tenant_account', {
+            p_tenant_id: tenant.id
+          });
 
           if (error) {
             this.tenantLease.error = error.message;
             return;
-          }
-
-          if (tenant.profile_id) {
-            const { error: profileError } = await supabaseClient
-              .from('profiles')
-              .delete()
-              .eq('id', tenant.profile_id);
-
-            if (profileError) {
-              this.tenantLease.error = `Tenant row deleted, but the linked profile could not be removed: ${profileError.message}`;
-              return;
-            }
           }
 
           if (this.tenantLease.selectedTenant?.id === tenant.id) {
