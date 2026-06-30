@@ -944,6 +944,11 @@
                           <span class="mb-2 block text-sm font-medium text-slate-700">Notes</span>
                           <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.paymentForm.notes">
                         </label>
+                        <label class="block lg:col-span-4">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Proof file</span>
+                          <input x-ref="unitPaymentProofInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" @change="handleImageSelection($event, 'unitPayment', 'proofFile')">
+                          <span class="mt-1 block text-xs text-slate-500">JPEG, PNG, WebP, or PDF. Max 10 MB.</span>
+                        </label>
                         <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600" type="submit">Log Payment</button>
                       </form>
                     </template>
@@ -956,11 +961,11 @@
                         <div class="overflow-x-auto">
                           <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
                             <thead class="bg-white text-xs uppercase tracking-wide text-slate-500">
-                              <tr><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Method</th><th class="px-4 py-3">Actions</th></tr>
+                              <tr><th class="px-4 py-3">Receipt</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Method</th><th class="px-4 py-3">Proof</th><th class="px-4 py-3">Actions</th></tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200">
                               <template x-if="propertyUnit.payments.length === 0">
-                                <tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="5">No verified payments.</td></tr>
+                                <tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="6">No verified payments.</td></tr>
                               </template>
                               <template x-for="payment in propertyUnit.payments" :key="payment.id">
                                 <tr>
@@ -968,6 +973,7 @@
                                   <td class="px-4 py-3" x-text="formatCurrency(payment.amount_paid)"></td>
                                   <td class="px-4 py-3" x-text="formatDate(payment.payment_date)"></td>
                                   <td class="px-4 py-3" x-text="titleCase(payment.payment_method)"></td>
+                                  <td class="px-4 py-3"><button x-show="paymentProofPath(payment)" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openPaymentProof(payment)">View</button><span x-show="!paymentProofPath(payment)" class="text-slate-400">-</span></td>
                                   <td class="px-4 py-3">
                                     <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="downloadReceipt(payment, propertyUnit.currentLease)">Download Receipt</button>
                                   </td>
@@ -1323,12 +1329,13 @@
                             <th class="px-4 py-3 font-semibold">Date</th>
                             <th class="px-4 py-3 font-semibold">Method</th>
                             <th class="px-4 py-3 font-semibold">Recorded By</th>
+                            <th class="px-4 py-3 font-semibold">Proof</th>
                             <th class="px-4 py-3 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200">
                           <template x-if="!payments.loading && payments.verifiedPayments.length === 0">
-                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="8">No verified payments.</td></tr>
+                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="9">No verified payments.</td></tr>
                           </template>
                           <template x-for="payment in payments.verifiedPayments" :key="payment.id">
                             <tr class="odd:bg-white even:bg-slate-50/60">
@@ -1339,6 +1346,7 @@
                               <td class="px-4 py-3 text-slate-700" x-text="formatDate(payment.payment_date)"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="titleCase(payment.payment_method)"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="payment.recordedByName || '-'"></td>
+                              <td class="px-4 py-3"><button x-show="paymentProofPath(payment)" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openPaymentProof(payment)">View</button><span x-show="!paymentProofPath(payment)" class="text-slate-400">-</span></td>
                               <td class="px-4 py-3">
                                 <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="downloadReceipt(payment)">Download Receipt</button>
                               </td>
@@ -1390,6 +1398,11 @@
                         <label class="block">
                           <span class="mb-2 block text-sm font-medium text-slate-700">Notes</span>
                           <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="payments.manualForm.notes">
+                        </label>
+                        <label class="block sm:col-span-2">
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Proof file</span>
+                          <input x-ref="manualPaymentProofInput" class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" @change="handleImageSelection($event, 'manualPayment', 'proofFile')">
+                          <span class="mt-1 block text-xs text-slate-500">JPEG, PNG, WebP, or PDF. Max 10 MB.</span>
                         </label>
                         <div class="flex justify-end gap-3 sm:col-span-2">
                           <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closePaymentModal">Cancel</button>
@@ -2378,7 +2391,8 @@
             amount: 0,
             date: '',
             method: 'cash',
-            notes: ''
+            notes: '',
+            proofFile: null
           }
         },
         account: {
@@ -2401,7 +2415,8 @@
             amount: 0,
             date: '',
             method: 'cash',
-            notes: ''
+            notes: '',
+            proofFile: null
           },
           rejectForm: {
             reason: ''
@@ -3657,7 +3672,7 @@
 
           const [paymentsResult, maintenanceResult] = await Promise.all([
             activeLease
-              ? supabaseClient.from('payments').select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, recorded_by, created_at').eq('lease_id', activeLease.id).order('payment_date', { ascending: false })
+              ? supabaseClient.from('payments').select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, proof_file_path, proof_file_name, proof_file_size, proof_file_uploaded_by, proof_file_uploaded_at, recorded_by, created_at, payment_submissions(id, proof_image_url, proof_image_path, proof_image_name, proof_image_size)').eq('lease_id', activeLease.id).order('payment_date', { ascending: false })
               : Promise.resolve({ data: [], error: null }),
             supabaseClient.from('maintenance_requests').select('id, unit_id, lease_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at').eq('unit_id', unit.id).order('created_at', { ascending: false })
           ]);
@@ -3770,15 +3785,17 @@
             amount: Number(this.propertyUnit.currentLease.monthly_rent || 0),
             date: new Date().toISOString().slice(0, 10),
             method: 'cash',
-            notes: ''
+            notes: '',
+            proofFile: null
           };
+          if (this.$refs.unitPaymentProofInput) this.$refs.unitPaymentProofInput.value = '';
         },
 
         async logPaymentForSelectedUnit() {
           if (!this.canVerifyPayments()) return;
           if (!this.propertyUnit.currentLease) return;
 
-          const { error } = await supabaseClient
+          const { data: paymentRows, error } = await supabaseClient
             .from('payments')
             .insert({
               lease_id: this.propertyUnit.currentLease.id,
@@ -3788,11 +3805,26 @@
               payment_method: this.propertyUnit.paymentForm.method,
               notes: this.propertyUnit.paymentForm.notes || null,
               recorded_by: this.profile.id
-            });
+            })
+            .select('id')
+            .limit(1);
 
           if (error) {
             this.propertyUnit.error = error.message;
             return;
+          }
+
+          const paymentRow = paymentRows?.[0] || null;
+          if (this.propertyUnit.paymentForm.proofFile && paymentRow?.id) {
+            try {
+              await this.attachPaymentRecordProof(paymentRow, this.propertyUnit.paymentForm.proofFile, this.currentLandlordId());
+            } catch (proofError) {
+              this.propertyUnit.detailMode = '';
+              await this.loadUnitDetail(this.propertyUnit.selectedUnit);
+              await this.loadDashboardData();
+              this.propertyUnit.error = `Payment saved, but proof upload failed: ${proofError.message}`;
+              return;
+            }
           }
 
           this.propertyUnit.detailMode = '';
@@ -3841,7 +3873,7 @@
               .order('created_at', { ascending: false }),
             supabaseClient
               .from('payments')
-              .select('id, lease_id, submission_id, amount_paid, payment_date, payment_method, notes, receipt_number, recorded_by, created_at, leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
+              .select('id, lease_id, submission_id, amount_paid, payment_date, payment_method, notes, receipt_number, proof_file_path, proof_file_name, proof_file_size, proof_file_uploaded_by, proof_file_uploaded_at, recorded_by, created_at, payment_submissions(id, proof_image_url, proof_image_path, proof_image_name, proof_image_size), leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
               .order('payment_date', { ascending: false }),
             supabaseClient
               .from('leases')
@@ -3894,14 +3926,18 @@
             amount: 0,
             date: new Date().toISOString().slice(0, 10),
             method: 'cash',
-            notes: ''
+            notes: '',
+            proofFile: null
           };
+          if (this.$refs.manualPaymentProofInput) this.$refs.manualPaymentProofInput.value = '';
         },
 
         closePaymentModal() {
           this.payments.modal = '';
           this.payments.selectedSubmission = null;
           this.payments.rejectForm = { reason: '' };
+          this.payments.manualForm.proofFile = null;
+          if (this.$refs.manualPaymentProofInput) this.$refs.manualPaymentProofInput.value = '';
           this.payments.saving = false;
         },
 
@@ -3916,7 +3952,7 @@
           this.payments.error = '';
           this.payments.saving = true;
 
-          const { error } = await supabaseClient
+          const { data: paymentRows, error } = await supabaseClient
             .from('payments')
             .insert({
               lease_id: this.payments.manualForm.leaseId,
@@ -3926,12 +3962,28 @@
               payment_method: this.payments.manualForm.method,
               notes: this.payments.manualForm.notes || null,
               recorded_by: this.profile.id
-            });
+            })
+            .select('id')
+            .limit(1);
 
           if (error) {
             this.payments.error = error.message;
             this.payments.saving = false;
             return;
+          }
+
+          const paymentRow = paymentRows?.[0] || null;
+          if (this.payments.manualForm.proofFile && paymentRow?.id) {
+            try {
+              await this.attachPaymentRecordProof(paymentRow, this.payments.manualForm.proofFile, this.currentLandlordId());
+            } catch (proofError) {
+              this.payments.activeTab = 'verified';
+              this.closePaymentModal();
+              await this.loadPaymentsData();
+              await this.loadDashboardData();
+              this.payments.error = `Payment saved, but proof upload failed: ${proofError.message}`;
+              return;
+            }
           }
 
           this.closePaymentModal();
@@ -5167,6 +5219,8 @@
         imageFormTarget(target) {
           const targets = {
             tenantPayment: { form: this.tenant.paymentForm, errorScope: 'tenant', inputRef: 'tenantPaymentProofInput' },
+            manualPayment: { form: this.payments.manualForm, errorScope: 'payments', inputRef: 'manualPaymentProofInput' },
+            unitPayment: { form: this.propertyUnit.paymentForm, errorScope: 'propertyUnit', inputRef: 'unitPaymentProofInput' },
             tenantMaintenance: { form: this.tenant.maintenanceForm, errorScope: 'tenant', inputRef: 'tenantMaintenancePhotoInput' },
             maintenanceLog: { form: this.maintenance.logForm, errorScope: 'maintenance', inputRef: 'maintenanceLogPhotoInput' }
           };
@@ -5178,6 +5232,8 @@
             this.maintenance.error = message;
           } else if (scope === 'payments') {
             this.payments.error = message;
+          } else if (scope === 'propertyUnit') {
+            this.propertyUnit.error = message;
           } else {
             this.tenant.error = message;
           }
@@ -5212,7 +5268,7 @@
 
           try {
             if (file) {
-              if (target === 'tenantPayment') {
+              if (target === 'tenantPayment' || target === 'manualPayment' || target === 'unitPayment') {
                 this.validatePaymentProofFile(file);
               } else {
                 this.validateImageFile(file);
@@ -5280,7 +5336,14 @@
         },
 
         paymentProofPath(submission) {
-          return submission?.proof_image_path || submission?.proof_image_url || '';
+          return submission?.proof_file_path
+            || submission?.proof_image_path
+            || submission?.proof_image_url
+            || submission?.payment_submissions?.proof_image_path
+            || submission?.payment_submissions?.proof_image_url
+            || submission?.submission?.proof_image_path
+            || submission?.submission?.proof_image_url
+            || '';
         },
 
         maintenancePhotoPath(request) {
@@ -5319,7 +5382,7 @@
           return this.openPrivateImage(
             PAYMENT_PROOF_BUCKET,
             this.paymentProofPath(submission),
-            submission?.proof_image_name || 'payment-proof',
+            submission?.proof_file_name || submission?.proof_image_name || submission?.payment_submissions?.proof_image_name || submission?.submission?.proof_image_name || 'payment-proof',
             this.currentShell === 'tenant' ? 'tenant' : 'payments'
           );
         },
@@ -5339,6 +5402,23 @@
           const objectPath = await this.uploadPaymentProofFile(landlordId, submission.id, file);
           const { error } = await supabaseClient.rpc('attach_payment_proof', {
             p_submission_id: submission.id,
+            p_path: objectPath,
+            p_name: file.name,
+            p_size: file.size
+          });
+
+          if (error) {
+            await supabaseClient.storage.from(PAYMENT_PROOF_BUCKET).remove([objectPath]);
+            throw error;
+          }
+        },
+
+        async attachPaymentRecordProof(payment, file, landlordId) {
+          if (!file || !payment?.id) return;
+
+          const objectPath = await this.uploadPaymentProofFile(landlordId, payment.id, file);
+          const { error } = await supabaseClient.rpc('attach_payment_record_proof', {
+            p_payment_id: payment.id,
             p_path: objectPath,
             p_name: file.name,
             p_size: file.size
