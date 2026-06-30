@@ -228,11 +228,15 @@
               </div>
               <span class="text-base font-bold text-slate-900">RentRadar Admin</span>
             </div>
-            <button class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50" type="button" @click="logout">Logout</button>
+            <div class="flex items-center gap-2">
+              <button class="rounded-lg px-3 py-2 text-sm font-semibold" type="button" :class="currentPage === 'landlord-management' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'" @click="navigate('landlord-management')">Landlords</button>
+              <button class="rounded-lg px-3 py-2 text-sm font-semibold" type="button" :class="currentPage === 'admin-finance' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'" @click="navigate('admin-finance')">Finance</button>
+              <button class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50" type="button" @click="logout">Logout</button>
+            </div>
           </div>
         </header>
 
-        <section id="super-admin-landlord-management" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <section x-show="currentPage === 'landlord-management'" id="super-admin-landlord-management" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 class="text-2xl font-bold text-slate-900">Landlord Management</h1>
@@ -274,6 +278,18 @@
               <p class="text-sm font-medium text-slate-500">Suspended</p>
               <p class="mt-2 text-3xl font-bold text-red-700" x-text="admin.stats.suspended"></p>
             </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+              <p class="text-sm font-medium text-slate-500">Tenants</p>
+              <p class="mt-2 text-3xl font-bold text-slate-900" x-text="admin.stats.tenants"></p>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+              <p class="text-sm font-medium text-slate-500">Staff</p>
+              <p class="mt-2 text-3xl font-bold text-slate-900" x-text="admin.stats.staff"></p>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft sm:col-span-2">
+              <p class="text-sm font-medium text-slate-500">Platform Revenue</p>
+              <p class="mt-2 text-3xl font-bold text-emerald-700" x-text="formatCurrency(admin.stats.revenue)"></p>
+            </article>
           </div>
 
           <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
@@ -292,6 +308,8 @@
                     <th class="px-4 py-3 font-semibold">Name</th>
                     <th class="px-4 py-3 font-semibold">Email</th>
                     <th class="px-4 py-3 font-semibold">Phone</th>
+                    <th class="px-4 py-3 font-semibold">Tenants</th>
+                    <th class="px-4 py-3 font-semibold">Staff</th>
                     <th class="px-4 py-3 font-semibold">Date Added</th>
                     <th class="px-4 py-3 font-semibold">Status</th>
                     <th class="px-4 py-3 font-semibold">Expiry</th>
@@ -301,7 +319,7 @@
                 <tbody class="divide-y divide-slate-200 bg-white">
                   <template x-if="!admin.loading && admin.landlords.length === 0">
                     <tr>
-                      <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No landlords yet.</td>
+                      <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="9">No landlords yet.</td>
                     </tr>
                   </template>
 
@@ -313,6 +331,8 @@
                       </td>
                       <td class="px-4 py-3 text-slate-700" x-text="row.email"></td>
                       <td class="px-4 py-3 text-slate-700" x-text="row.phone || '-'"></td>
+                      <td class="px-4 py-3 text-slate-700" x-text="row.tenant_count || 0"></td>
+                      <td class="px-4 py-3 text-slate-700" x-text="row.staff_count || 0"></td>
                       <td class="px-4 py-3 text-slate-700" x-text="formatDate(row.created_at)"></td>
                       <td class="px-4 py-3">
                         <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusBadgeClass(row.subscription?.status || 'trial')" x-text="titleCase(row.subscription?.status || 'trial')"></span>
@@ -333,6 +353,104 @@
               </table>
             </div>
           </div>
+        </section>
+
+        <section x-show="currentPage === 'admin-finance'" id="super-admin-finance" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 class="text-2xl font-bold text-slate-900">Finance</h1>
+              <p class="mt-1 text-sm text-slate-600">Record landlord subscription payments and review platform revenue.</p>
+            </div>
+            <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="loadSuperAdminData" :disabled="admin.loading">Refresh</button>
+          </div>
+
+          <template x-if="admin.error">
+            <div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="admin.error"></div>
+          </template>
+          <template x-if="admin.message">
+            <div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700" x-text="admin.message"></div>
+          </template>
+
+          <div class="mb-6 grid gap-4 md:grid-cols-3">
+            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+              <p class="text-sm font-medium text-slate-500">Total Revenue</p>
+              <p class="mt-2 text-3xl font-bold text-emerald-700" x-text="formatCurrency(admin.financeStats.totalRevenue)"></p>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+              <p class="text-sm font-medium text-slate-500">This Month</p>
+              <p class="mt-2 text-3xl font-bold text-slate-900" x-text="formatCurrency(admin.financeStats.thisMonth)"></p>
+            </article>
+            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+              <p class="text-sm font-medium text-slate-500">Active Landlords</p>
+              <p class="mt-2 text-3xl font-bold text-slate-900" x-text="admin.financeStats.activeLandlords"></p>
+            </article>
+          </div>
+
+          <section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+            <h2 class="text-lg font-bold text-slate-900">Record Payment</h2>
+            <form class="mt-5 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_auto]" @submit.prevent="recordPlatformPayment">
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Landlord</span>
+                <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="admin.financeForm.landlordId" required>
+                  <option value="">Select landlord</option>
+                  <template x-for="row in admin.landlords.filter(item => item.accepted)" :key="row.profile_id">
+                    <option :value="row.profile_id" x-text="`${row.full_name} - ${row.email}`"></option>
+                  </template>
+                </select>
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Amount</span>
+                <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" x-model.number="admin.financeForm.amount" required>
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Paid date</span>
+                <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="admin.financeForm.paidAt" required>
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">From</span>
+                <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="admin.financeForm.periodStart" required>
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">To</span>
+                <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="date" x-model="admin.financeForm.periodEnd" required>
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">Notes</span>
+                <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="admin.financeForm.notes">
+              </label>
+              <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="admin.saving">Add</button>
+            </form>
+          </section>
+
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th class="px-4 py-3 font-semibold">Landlord</th>
+                    <th class="px-4 py-3 font-semibold">Amount</th>
+                    <th class="px-4 py-3 font-semibold">Paid Date</th>
+                    <th class="px-4 py-3 font-semibold">Period</th>
+                    <th class="px-4 py-3 font-semibold">Notes</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <template x-if="!admin.loading && admin.financePayments.length === 0">
+                    <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No platform payments recorded.</td></tr>
+                  </template>
+                  <template x-for="payment in admin.financePayments" :key="payment.id">
+                    <tr class="odd:bg-white even:bg-slate-50/60">
+                      <td class="px-4 py-3"><p class="font-semibold text-slate-900" x-text="payment.landlord?.full_name || '-'"></p><p class="mt-1 text-xs text-slate-500" x-text="payment.landlord?.email || ''"></p></td>
+                      <td class="px-4 py-3 text-slate-700" x-text="formatCurrency(payment.amount_paid)"></td>
+                      <td class="px-4 py-3 text-slate-700" x-text="formatDate(payment.paid_at)"></td>
+                      <td class="px-4 py-3 text-slate-700" x-text="`${formatDate(payment.period_start)} - ${formatDate(payment.period_end)}`"></td>
+                      <td class="max-w-72 truncate px-4 py-3 text-slate-700" x-text="payment.notes || '-'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </section>
         </section>
 
         <template x-if="admin.modal === 'add'">
@@ -469,6 +587,10 @@
             </section>
           </div>
         </template>
+        <footer class="mx-auto flex max-w-7xl flex-col gap-3 px-4 pb-6 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <p x-text="copyrightText()"></p>
+          <a class="inline-flex w-max rounded-lg border border-emerald-200 bg-white px-3 py-2 font-semibold text-emerald-700 hover:bg-emerald-50" :href="supportMailto()">Contact Support</a>
+        </footer>
       </main>
     </template>
 
@@ -566,6 +688,21 @@
             <section id="landlord-staff-page-content" class="p-4 sm:p-6">
               <template x-if="currentPage === 'dashboard'">
                 <div class="space-y-6">
+                  <section x-show="profile?.role === 'landlord'" class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p class="text-sm font-medium text-slate-500">Subscription</p>
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                          <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="subscriptionDashboardBadgeClass()" x-text="subscriptionDashboardLabel()"></span>
+                          <span x-show="subscriptionExpiringSoon()" class="inline-flex rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-amber-700">Expiring soon</span>
+                        </div>
+                      </div>
+                      <div class="text-sm text-slate-600">
+                        <span>Expires </span><span class="font-semibold text-slate-900" x-text="formatDate(subscription?.expires_at)"></span>
+                      </div>
+                    </div>
+                  </section>
+
                   <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                       <p class="text-sm font-medium text-slate-500">Total Properties</p>
@@ -586,6 +723,25 @@
                     <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                       <p class="text-sm font-medium text-slate-500">Pending Submissions</p>
                       <p class="mt-2 text-3xl font-bold text-amber-700" x-text="dashboard.stats.pendingSubmissions"></p>
+                    </article>
+                  </div>
+
+                  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">Maintenance Requests</p>
+                      <p class="mt-2 text-3xl font-bold text-slate-900" x-text="dashboard.stats.maintenanceTotal"></p>
+                    </article>
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">Open</p>
+                      <p class="mt-2 text-3xl font-bold text-amber-700" x-text="dashboard.stats.maintenanceOpen"></p>
+                    </article>
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">In Progress</p>
+                      <p class="mt-2 text-3xl font-bold text-slate-900" x-text="dashboard.stats.maintenanceInProgress"></p>
+                    </article>
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">Resolved</p>
+                      <p class="mt-2 text-3xl font-bold text-emerald-700" x-text="dashboard.stats.maintenanceResolved"></p>
                     </article>
                   </div>
 
@@ -776,7 +932,7 @@
                             <th class="px-4 py-3 font-semibold">Property</th>
                             <th class="px-4 py-3 font-semibold">Bedrooms</th>
                             <th class="px-4 py-3 font-semibold">Bathrooms</th>
-                            <th class="px-4 py-3 font-semibold">Rent</th>
+                            <th x-show="canViewFinancials()" class="px-4 py-3 font-semibold">Rent</th>
                             <th class="px-4 py-3 font-semibold">Status</th>
                             <th class="px-4 py-3 font-semibold">Actions</th>
                           </tr>
@@ -793,7 +949,7 @@
                               <td class="px-4 py-3 text-slate-700" x-text="unit.property?.name || propertyName(unit.property_id)"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="unit.bedrooms"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="unit.bathrooms"></td>
-                              <td class="px-4 py-3 text-slate-700" x-text="formatCurrency(unit.monthly_rent)"></td>
+                              <td x-show="canViewFinancials()" class="px-4 py-3 text-slate-700" x-text="formatCurrency(unit.monthly_rent)"></td>
                               <td class="px-4 py-3">
                                 <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="unit.status === 'occupied' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'" x-text="titleCase(unit.status)"></span>
                               </td>
@@ -819,8 +975,8 @@
                         <p class="mt-1 text-sm text-slate-500" x-text="propertyUnit.selectedUnit ? propertyName(propertyUnit.selectedUnit.property_id) : ''"></p>
                       </div>
                       <div class="flex flex-wrap gap-2">
-                        <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="startEditSelectedUnit">Edit Unit</button>
-                        <button x-show="canVerifyPayments()" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="prepareUnitPayment">Log Payment</button>
+                        <button x-show="canManageProperties()" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="startEditSelectedUnit">Edit Unit</button>
+                        <button x-show="canViewFinancials()" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="prepareUnitPayment">Log Payment</button>
                         <button x-show="canManageLeases()" class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="prepareAssignTenant(propertyUnit.selectedUnit)">Change Tenant</button>
                         <button x-show="canManageLeases() && propertyUnit.selectedUnit?.status === 'occupied'" class="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-yellow-100" type="button" @click="markUnitVacant(propertyUnit.selectedUnit)">Mark Vacant</button>
                         <button x-show="canManageProperties()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteUnit(propertyUnit.selectedUnit)">Delete Unit</button>
@@ -833,7 +989,7 @@
                         <dl class="mt-3 space-y-2 text-sm">
                           <div class="flex justify-between gap-4"><dt class="text-slate-500">Bedrooms</dt><dd class="font-medium text-slate-900" x-text="propertyUnit.selectedUnit?.bedrooms"></dd></div>
                           <div class="flex justify-between gap-4"><dt class="text-slate-500">Bathrooms</dt><dd class="font-medium text-slate-900" x-text="propertyUnit.selectedUnit?.bathrooms"></dd></div>
-                          <div class="flex justify-between gap-4"><dt class="text-slate-500">Rent</dt><dd class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.selectedUnit?.monthly_rent)"></dd></div>
+                          <div x-show="canViewFinancials()" class="flex justify-between gap-4"><dt class="text-slate-500">Rent</dt><dd class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.selectedUnit?.monthly_rent)"></dd></div>
                           <div class="flex justify-between gap-4"><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900" x-text="titleCase(propertyUnit.selectedUnit?.status || '')"></dd></div>
                         </dl>
                       </div>
@@ -844,8 +1000,8 @@
                           <div class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                             <p><span class="text-slate-500">Tenant:</span> <span class="font-medium text-slate-900" x-text="propertyUnit.currentLease.tenant?.full_name || '-'"></span></p>
                             <p><span class="text-slate-500">Lease:</span> <span class="font-medium text-slate-900" x-text="`${formatDate(propertyUnit.currentLease.start_date)} - ${formatDate(propertyUnit.currentLease.end_date)}`"></span></p>
-                            <p><span class="text-slate-500">Rent:</span> <span class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.currentLease.monthly_rent)"></span></p>
-                            <p><span class="text-slate-500">Deposit:</span> <span class="font-medium text-slate-900" x-text="propertyUnit.currentLease.deposit_paid ? 'Paid' : 'Unpaid'"></span></p>
+                            <p x-show="canViewFinancials()"><span class="text-slate-500">Rent:</span> <span class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.currentLease.monthly_rent)"></span></p>
+                            <p x-show="canViewFinancials()"><span class="text-slate-500">Deposit:</span> <span class="font-medium text-slate-900" x-text="propertyUnit.currentLease.deposit_paid ? 'Paid' : 'Unpaid'"></span></p>
                             <button x-show="leaseDocumentPath(propertyUnit.currentLease)" class="text-sm font-semibold text-emerald-700 underline" type="button" @click="openLeaseDocument(propertyUnit.currentLease)">Download Lease Document</button>
                           </div>
                         </template>
@@ -855,7 +1011,7 @@
                       </div>
                     </div>
 
-                    <template x-if="propertyUnit.detailMode === 'edit'">
+                    <template x-if="propertyUnit.detailMode === 'edit' && canManageProperties()">
                       <form class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]" @submit.prevent="saveSelectedUnitEdit">
                         <label class="block">
                           <span class="mb-2 block text-sm font-medium text-slate-700">Unit number</span>
@@ -912,7 +1068,7 @@
                       </form>
                     </template>
 
-                    <template x-if="propertyUnit.detailMode === 'payment'">
+                    <template x-if="propertyUnit.detailMode === 'payment' && canViewFinancials()">
                       <form class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto]" @submit.prevent="logPaymentForSelectedUnit">
                         <label class="block">
                           <span class="mb-2 block text-sm font-medium text-slate-700">Amount</span>
@@ -945,7 +1101,7 @@
                     </template>
 
                     <div class="mt-6 grid gap-6 xl:grid-cols-2">
-                      <section class="overflow-hidden rounded-lg border border-slate-200">
+                      <section x-show="canViewFinancials()" class="overflow-hidden rounded-lg border border-slate-200">
                         <div class="border-b border-slate-200 bg-slate-50 px-4 py-3">
                           <h3 class="text-sm font-semibold text-slate-900">Payment History</h3>
                         </div>
@@ -975,7 +1131,7 @@
                         </div>
                       </section>
 
-                      <section class="overflow-hidden rounded-lg border border-slate-200">
+                      <section class="overflow-hidden rounded-lg border border-slate-200" :class="canViewFinancials() ? '' : 'xl:col-span-2'">
                         <div class="border-b border-slate-200 bg-slate-50 px-4 py-3">
                           <h3 class="text-sm font-semibold text-slate-900">Maintenance History</h3>
                         </div>
@@ -1102,7 +1258,7 @@
                             <tbody class="divide-y divide-slate-200">
                               <template x-if="tenantLease.selectedTenantLeases.length === 0"><tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="5">No leases.</td></tr></template>
                               <template x-for="lease in tenantLease.selectedTenantLeases" :key="lease.id">
-                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3"><button x-show="canManageLeases()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Delete</button></td></tr>
+                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3"><button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Delete</button></td></tr>
                               </template>
                             </tbody>
                           </table>
@@ -1201,7 +1357,7 @@
                         <tbody class="divide-y divide-slate-200">
                           <template x-if="!tenantLease.loading && tenantLease.leases.length === 0"><tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="8">No leases yet.</td></tr></template>
                           <template x-for="lease in tenantLease.leases" :key="lease.id">
-                            <tr class="odd:bg-white even:bg-slate-50/60"><td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant?.full_name || '-'"></td><td class="px-4 py-3" x-text="leasePropertyLabel(lease)"></td><td class="px-4 py-3" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3" x-text="leaseDocumentLabel(lease)"></td><td class="px-4 py-3"><div class="flex flex-wrap gap-2"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewLease(lease)">View</button><button x-show="canManageLeases()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Delete</button></div></td></tr>
+                            <tr class="odd:bg-white even:bg-slate-50/60"><td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant?.full_name || '-'"></td><td class="px-4 py-3" x-text="leasePropertyLabel(lease)"></td><td class="px-4 py-3" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3" x-text="leaseDocumentLabel(lease)"></td><td class="px-4 py-3"><div class="flex flex-wrap gap-2"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewLease(lease)">View</button><button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Delete</button></div></td></tr>
                           </template>
                         </tbody>
                       </table>
@@ -1209,7 +1365,7 @@
                   </section>
 
                   <section x-show="tenantLease.selectedLease" class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 class="text-lg font-bold text-slate-900">Lease Detail</h2><p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedLease ? `${tenantLease.selectedLease.tenant?.full_name || '-'} - ${leaseUnitLabel(tenantLease.selectedLease)}` : ''"></p></div><button x-show="canManageLeases()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(tenantLease.selectedLease)">Delete Lease</button></div>
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 class="text-lg font-bold text-slate-900">Lease Detail</h2><p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedLease ? `${tenantLease.selectedLease.tenant?.full_name || '-'} - ${leaseUnitLabel(tenantLease.selectedLease)}` : ''"></p></div><button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(tenantLease.selectedLease)">Delete Lease</button></div>
                     <div class="grid gap-4 lg:grid-cols-4">
                       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Dates</p><p class="mt-2 font-semibold text-slate-900" x-text="tenantLease.selectedLease ? `${formatDate(tenantLease.selectedLease.start_date)} - ${formatDate(tenantLease.selectedLease.end_date)}` : '-'"></p></div>
                       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Monthly Rent</p><p class="mt-2 font-semibold text-slate-900" x-text="formatCurrency(tenantLease.selectedLease?.monthly_rent)"></p></div>
@@ -1429,6 +1585,83 @@
                 </div>
               </template>
 
+              <template x-if="currentPage === 'finance'">
+                <div class="space-y-6">
+                  <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <h1 class="text-xl font-bold text-slate-900">Finance</h1>
+                        <p class="mt-1 text-sm text-slate-500">Track revenue generated from verified rent payments.</p>
+                      </div>
+                      <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="refreshCurrentPage">Refresh</button>
+                    </div>
+
+                    <template x-if="finance.error">
+                      <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="finance.error"></div>
+                    </template>
+                  </section>
+
+                  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">Total Revenue</p>
+                      <p class="mt-2 text-3xl font-bold text-emerald-700" x-text="formatCurrency(finance.stats.totalRevenue)"></p>
+                    </article>
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">This Month</p>
+                      <p class="mt-2 text-3xl font-bold text-slate-900" x-text="formatCurrency(finance.stats.monthRevenue)"></p>
+                    </article>
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">This Year</p>
+                      <p class="mt-2 text-3xl font-bold text-slate-900" x-text="formatCurrency(finance.stats.yearRevenue)"></p>
+                    </article>
+                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <p class="text-sm font-medium text-slate-500">Average Payment</p>
+                      <p class="mt-2 text-3xl font-bold text-slate-900" x-text="formatCurrency(finance.stats.averagePayment)"></p>
+                    </article>
+                  </section>
+
+                  <section class="grid gap-6 xl:grid-cols-2">
+                    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                      <div class="border-b border-slate-200 px-4 py-3">
+                        <h2 class="text-sm font-semibold text-slate-900">Revenue by Property</h2>
+                      </div>
+                      <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr><th class="px-4 py-3 font-semibold">Property</th><th class="px-4 py-3 font-semibold">Payments</th><th class="px-4 py-3 font-semibold">Revenue</th></tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-200">
+                            <template x-if="!finance.loading && finance.byProperty.length === 0"><tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="3">No revenue yet.</td></tr></template>
+                            <template x-for="row in finance.byProperty" :key="row.property">
+                              <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="row.property"></td><td class="px-4 py-3 text-slate-700" x-text="row.count"></td><td class="px-4 py-3 text-slate-700" x-text="formatCurrency(row.total)"></td></tr>
+                            </template>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+
+                    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
+                      <div class="border-b border-slate-200 px-4 py-3">
+                        <h2 class="text-sm font-semibold text-slate-900">Recent Payments</h2>
+                      </div>
+                      <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 text-left text-[13px]">
+                          <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr><th class="px-4 py-3 font-semibold">Tenant</th><th class="px-4 py-3 font-semibold">Unit</th><th class="px-4 py-3 font-semibold">Amount</th><th class="px-4 py-3 font-semibold">Date</th></tr>
+                          </thead>
+                          <tbody class="divide-y divide-slate-200">
+                            <template x-if="!finance.loading && finance.payments.length === 0"><tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="4">No verified payments.</td></tr></template>
+                            <template x-for="payment in finance.payments.slice(0, 12)" :key="payment.id">
+                              <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="payment.tenant"></td><td class="px-4 py-3 text-slate-700" x-text="payment.unit"></td><td class="px-4 py-3 text-slate-700" x-text="formatCurrency(payment.amount)"></td><td class="px-4 py-3 text-slate-700" x-text="formatDate(payment.date)"></td></tr>
+                            </template>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </section>
+                </div>
+              </template>
+
               <template x-if="currentPage === 'maintenance'">
                 <div class="space-y-6">
                   <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
@@ -1521,7 +1754,6 @@
                                 <div class="flex flex-wrap gap-2">
                                   <button x-show="maintenancePhotoPath(request)" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openMaintenancePhoto(request)">Photo</button>
                                   <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openMaintenanceEditModal(request)">Update</button>
-                                  <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteMaintenanceRequest(request)">Delete</button>
                                 </div>
                               </td>
                             </tr>
@@ -1620,7 +1852,6 @@
                           <textarea class="min-h-28 w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model.trim="maintenance.editForm.resolutionNotes"></textarea>
                         </label>
                         <div class="flex justify-end gap-3 sm:col-span-2">
-                          <button class="mr-auto rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteMaintenanceRequest(maintenance.selectedRequest)">Delete</button>
                           <button class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50" type="button" @click="closeMaintenanceModal">Cancel</button>
                           <button class="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="maintenance.saving">Save Update</button>
                         </div>
@@ -1819,7 +2050,7 @@
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <h1 class="text-xl font-bold text-slate-900">Settings</h1>
-                        <p class="mt-1 text-sm text-slate-500">Update your profile, notification channel, and password.</p>
+                        <p class="mt-1 text-sm text-slate-500">Update your profile and password.</p>
                       </div>
                       <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="refreshCurrentPage">Refresh</button>
                     </div>
@@ -1855,22 +2086,9 @@
                     </article>
 
                     <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-                      <h2 class="text-lg font-bold text-slate-900">Telegram</h2>
-                      <div class="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <div class="flex items-center justify-between gap-4">
-                          <p class="text-sm font-medium text-slate-500">Connection status</p>
-                          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="profile?.telegram_connected ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-amber-700'" x-text="profile?.telegram_connected ? 'Connected' : 'Not connected'"></span>
-                        </div>
-                        <p class="mt-3 text-sm text-slate-600" x-show="profile?.telegram_chat_id" x-text="`Chat ID: ${profile?.telegram_chat_id}`"></p>
-                      </div>
-                      <div class="mt-5 flex flex-wrap gap-2">
-                        <button class="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="button" @click="generateTelegramLink" :disabled="settings.savingTelegram">Generate Link</button>
-                        <button x-show="settings.telegramLink" class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="copyText(settings.telegramLink); settings.message = 'Telegram link copied.'">Copy Link</button>
-                      </div>
-                      <label x-show="settings.telegramLink" class="mt-5 block">
-                        <span class="mb-2 block text-sm font-medium text-slate-700">Telegram bot link</span>
-                        <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 outline-none" type="text" x-model="settings.telegramLink" readonly>
-                      </label>
+                      <h2 class="text-lg font-bold text-slate-900">Support</h2>
+                      <p class="mt-3 text-sm leading-6 text-slate-600">Contact support for account, billing, or setup help.</p>
+                      <a class="mt-5 inline-flex rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600" :href="supportMailto()">Contact Support</a>
                     </article>
                   </section>
 
@@ -1944,6 +2162,10 @@
                   </section>
                 </div>
               </template>
+              <footer class="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-5 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                <p x-text="copyrightText()"></p>
+                <a class="inline-flex w-max rounded-lg border border-emerald-200 bg-white px-3 py-2 font-semibold text-emerald-700 hover:bg-emerald-50" :href="supportMailto()">Contact Support</a>
+              </footer>
             </section>
           </div>
         </div>
@@ -1966,6 +2188,7 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
+              <span class="hidden rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 sm:inline-flex" x-text="tenant.tenantRow?.full_name || profile?.full_name || 'Tenant'"></span>
               <button class="relative rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-50" type="button" @click="navigate('tenant-notifications')" aria-label="Notifications">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M15 17H9m9-2v-4a6 6 0 1 0-12 0v4l-2 2h16l-2-2ZM10 20h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -2220,11 +2443,9 @@
                 </form>
               </section>
               <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-                <h2 class="text-sm font-semibold text-slate-900">Telegram</h2>
-                <p class="mt-2 text-sm text-slate-600" x-text="profile?.telegram_connected ? 'Connected' : 'Not connected'"></p>
-                <button class="mt-4 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="button" @click="generateTelegramLink" :disabled="settings.savingTelegram">Generate Link</button>
-                <label x-show="settings.telegramLink" class="mt-4 block"><span class="mb-2 block text-sm font-medium text-slate-700">Telegram bot link</span><input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 outline-none" type="text" x-model="settings.telegramLink" readonly></label>
-                <button x-show="settings.telegramLink" class="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="copyText(settings.telegramLink); settings.message = 'Telegram link copied.'">Copy Link</button>
+                <h2 class="text-sm font-semibold text-slate-900">Support</h2>
+                <p class="mt-2 text-sm text-slate-600">Contact support for account or payment help.</p>
+                <a class="mt-4 inline-flex rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600" :href="supportMailto()">Contact Support</a>
               </section>
               <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                 <h2 class="text-sm font-semibold text-slate-900">Change Password</h2>
@@ -2236,6 +2457,10 @@
               </section>
             </div>
           </template>
+          <footer class="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-5 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <p x-text="copyrightText()"></p>
+            <a class="inline-flex w-max rounded-lg border border-emerald-200 bg-white px-3 py-2 font-semibold text-emerald-700 hover:bg-emerald-50" :href="supportMailto()">Contact Support</a>
+          </footer>
         </section>
       </main>
     </template>
@@ -2251,6 +2476,8 @@
     const MAINTENANCE_PHOTO_BUCKET = 'maintenance-photos';
     const MAX_IMAGE_UPLOAD_SIZE = 10 * 1024 * 1024;
     const MAX_PAYMENT_PROOF_UPLOAD_SIZE = 10 * 1024 * 1024;
+    const COMPANY_NAME = 'RentRadar';
+    const SUPPORT_EMAIL = 'dhruvp246@gmail.com';
 
     function rentRadarApp() {
       return {
@@ -2307,7 +2534,24 @@
             total: 0,
             active: 0,
             trial: 0,
-            suspended: 0
+            suspended: 0,
+            tenants: 0,
+            staff: 0,
+            revenue: 0
+          },
+          financePayments: [],
+          financeStats: {
+            totalRevenue: 0,
+            thisMonth: 0,
+            activeLandlords: 0
+          },
+          financeForm: {
+            landlordId: '',
+            amount: 0,
+            paidAt: '',
+            periodStart: '',
+            periodEnd: '',
+            notes: ''
           },
           addForm: {
             fullName: '',
@@ -2333,7 +2577,11 @@
             units: 0,
             occupied: 0,
             vacant: 0,
-            pendingSubmissions: 0
+            pendingSubmissions: 0,
+            maintenanceTotal: 0,
+            maintenanceOpen: 0,
+            maintenanceInProgress: 0,
+            maintenanceResolved: 0
           },
           recentPayments: [],
           leaseExpirations: []
@@ -2390,6 +2638,18 @@
           loading: false,
           error: '',
           subscription: null
+        },
+        finance: {
+          loading: false,
+          error: '',
+          payments: [],
+          byProperty: [],
+          stats: {
+            totalRevenue: 0,
+            monthRevenue: 0,
+            yearRevenue: 0,
+            averagePayment: 0
+          }
         },
         payments: {
           loading: false,
@@ -2474,11 +2734,9 @@
         settings: {
           loading: false,
           savingProfile: false,
-          savingTelegram: false,
           savingPassword: false,
           error: '',
           message: '',
-          telegramLink: '',
           profileForm: {
             fullName: '',
             phone: '',
@@ -2837,7 +3095,7 @@
           if (!page) return false;
 
           if (this.currentShell === 'super_admin') {
-            return page === 'landlord-management';
+            return ['landlord-management', 'admin-finance'].includes(page);
           }
 
           if (this.currentShell === 'tenant') {
@@ -2848,6 +3106,7 @@
 
           if (page === 'dashboard' || page === 'notifications' || page === 'settings') return true;
           if (page === 'my-account') return this.profile?.role === 'landlord';
+          if (page === 'finance') return this.profile?.role === 'landlord';
           if (page === 'staff') return this.profile?.role === 'landlord';
           return this.canShowAppPage(page);
         },
@@ -2866,11 +3125,21 @@
           return this.restorePage(defaultPage);
         },
 
+        countByKey(rows, key) {
+          const counts = new Map();
+          rows.forEach(row => {
+            const value = row?.[key];
+            if (!value) return;
+            counts.set(value, (counts.get(value) || 0) + 1);
+          });
+          return counts;
+        },
+
         async loadSuperAdminData() {
           this.admin.loading = true;
           this.admin.error = '';
 
-          const [profilesResult, invitesResult, subscriptionsResult] = await Promise.all([
+          const [profilesResult, invitesResult, subscriptionsResult, staffProfilesResult, tenantsResult, platformPaymentsResult] = await Promise.all([
             supabaseClient
               .from('profiles')
               .select('id, full_name, phone, email, role, created_at')
@@ -2885,9 +3154,21 @@
               .from('landlord_subscriptions')
               .select('id, landlord_id, status, expires_at, notes, invite_token_id, updated_by, updated_at, created_at')
               .order('created_at', { ascending: false })
+            ,
+            supabaseClient
+              .from('profiles')
+              .select('id, landlord_id, role')
+              .eq('role', 'staff'),
+            supabaseClient
+              .from('tenants')
+              .select('id, landlord_id'),
+            supabaseClient
+              .from('platform_payments')
+              .select('id, landlord_id, amount_paid, paid_at, period_start, period_end, notes, recorded_by, created_at, landlord:profiles!platform_payments_landlord_id_fkey(id, full_name, email)')
+              .order('paid_at', { ascending: false })
           ]);
 
-          const firstError = profilesResult.error || invitesResult.error || subscriptionsResult.error;
+          const firstError = profilesResult.error || invitesResult.error || subscriptionsResult.error || staffProfilesResult.error || tenantsResult.error || platformPaymentsResult.error;
           if (firstError) {
             this.admin.error = firstError.message;
             this.admin.loading = false;
@@ -2895,6 +3176,9 @@
           }
 
           const subscriptions = subscriptionsResult.data || [];
+          const staffCounts = this.countByKey(staffProfilesResult.data || [], 'landlord_id');
+          const tenantCounts = this.countByKey(tenantsResult.data || [], 'landlord_id');
+          const platformPayments = platformPaymentsResult.data || [];
           const subscriptionByLandlord = new Map(subscriptions.filter(row => row.landlord_id).map(row => [row.landlord_id, row]));
           const subscriptionByInvite = new Map(subscriptions.filter(row => row.invite_token_id).map(row => [row.invite_token_id, row]));
 
@@ -2910,6 +3194,8 @@
               full_name: profile.full_name,
               email: profile.email,
               phone: profile.phone,
+              tenant_count: tenantCounts.get(profile.id) || 0,
+              staff_count: staffCounts.get(profile.id) || 0,
               created_at: profile.created_at,
               subscription
             };
@@ -2931,6 +3217,8 @@
                 full_name: metadata.full_name || metadata.fullName || invite.email,
                 email: invite.email,
                 phone: metadata.phone || '',
+                tenant_count: 0,
+                staff_count: 0,
                 created_at: invite.created_at,
                 subscription: subscriptionByInvite.get(invite.id) || null
               };
@@ -2944,7 +3232,23 @@
             total: this.admin.landlords.length,
             active: this.admin.landlords.filter(row => row.subscription?.status === 'active').length,
             trial: this.admin.landlords.filter(row => row.subscription?.status === 'trial').length,
-            suspended: this.admin.landlords.filter(row => row.subscription?.status === 'suspended').length
+            suspended: this.admin.landlords.filter(row => row.subscription?.status === 'suspended').length,
+            tenants: Array.from(tenantCounts.values()).reduce((sum, count) => sum + count, 0),
+            staff: Array.from(staffCounts.values()).reduce((sum, count) => sum + count, 0),
+            revenue: platformPayments.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0)
+          };
+
+          const monthKey = new Date().toISOString().slice(0, 7);
+          this.admin.financePayments = platformPayments.map(payment => ({
+            ...payment,
+            landlord: payment.landlord || null
+          }));
+          this.admin.financeStats = {
+            totalRevenue: this.admin.stats.revenue,
+            thisMonth: platformPayments
+              .filter(payment => String(payment.paid_at || '').slice(0, 7) === monthKey)
+              .reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0),
+            activeLandlords: this.admin.stats.active
           };
 
           this.admin.loading = false;
@@ -2971,6 +3275,47 @@
           this.admin.modal = '';
           this.admin.formError = '';
           this.admin.saving = false;
+        },
+
+        resetAdminFinanceForm() {
+          const today = new Date().toISOString().slice(0, 10);
+          this.admin.financeForm = {
+            landlordId: '',
+            amount: 0,
+            paidAt: today,
+            periodStart: today,
+            periodEnd: today,
+            notes: ''
+          };
+        },
+
+        async recordPlatformPayment() {
+          this.admin.error = '';
+          this.admin.message = '';
+          this.admin.saving = true;
+
+          const { error } = await supabaseClient
+            .from('platform_payments')
+            .insert({
+              landlord_id: this.admin.financeForm.landlordId,
+              amount_paid: Number(this.admin.financeForm.amount || 0),
+              paid_at: this.admin.financeForm.paidAt,
+              period_start: this.admin.financeForm.periodStart,
+              period_end: this.admin.financeForm.periodEnd,
+              notes: this.admin.financeForm.notes || null,
+              recorded_by: this.profile.id
+            });
+
+          if (error) {
+            this.admin.error = error.message;
+            this.admin.saving = false;
+            return;
+          }
+
+          this.admin.message = 'Payment recorded.';
+          this.admin.saving = false;
+          this.resetAdminFinanceForm();
+          await this.loadSuperAdminData();
         },
 
         openEditLandlord(row) {
@@ -3251,6 +3596,7 @@
             { page: 'tenants', label: 'Tenants', icon: 'users', visible: this.canShowAppPage('tenants') },
             { page: 'leases', label: 'Leases', icon: 'file', visible: this.canShowAppPage('leases') },
             { page: 'payments', label: 'Payments', icon: 'card', visible: this.canShowAppPage('payments') },
+            { page: 'finance', label: 'Finance', icon: 'chart', visible: this.profile?.role === 'landlord' },
             { page: 'maintenance', label: 'Maintenance', icon: 'wrench', visible: this.canShowAppPage('maintenance') },
             { page: 'staff', label: 'Staff', icon: 'badge', visible: this.profile?.role === 'landlord' },
             { page: 'notifications', label: 'Notifications', icon: 'bell', visible: true },
@@ -3293,6 +3639,7 @@
             users: '<svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M16 19c0-2.2-1.8-4-4-4s-4 1.8-4 4M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6 7c0-1.6-.8-3-2-3.8M16 5.2a3 3 0 0 1 0 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
             file: '<svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M7 3h7l4 4v14H7V3Zm7 0v5h4M10 13h5M10 17h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             card: '<svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M4 7h16v10H4V7Zm0 3h16M8 15h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            chart: '<svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             wrench: '<svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="m14 7 3-3 3 3-3 3M5 19l9-9M7 21l-4-4 4-4 4 4-4 4Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
             badge: '<svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8c.8-3.5 3.4-5 7-5s6.2 1.5 7 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
             account: '<svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 8c.8-3.5 3.2-5 6-5s5.2 1.5 6 5M18 6h3m-1.5-1.5v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
@@ -3329,23 +3676,31 @@
               .eq('status', 'active')
               .gte('end_date', today)
               .order('end_date', { ascending: true })
-              .limit(8)
+              .limit(8),
+            supabaseClient
+              .from('maintenance_requests')
+              .select('id, status')
           ]);
 
-          const [propertiesResult, unitsResult, pendingResult, paymentsResult, leasesResult] = queryResults;
-          const firstError = propertiesResult.error || unitsResult.error || pendingResult.error || paymentsResult.error || leasesResult.error;
+          const [propertiesResult, unitsResult, pendingResult, paymentsResult, leasesResult, maintenanceResult] = queryResults;
+          const firstError = propertiesResult.error || unitsResult.error || pendingResult.error || paymentsResult.error || leasesResult.error || maintenanceResult.error;
 
           if (firstError) {
             this.dashboard.error = firstError.message;
           }
 
           const units = unitsResult.data || [];
+          const maintenanceRows = maintenanceResult.data || [];
           this.dashboard.stats = {
             properties: propertiesResult.count || 0,
             units: units.length,
             occupied: units.filter(unit => unit.status === 'occupied').length,
             vacant: units.filter(unit => unit.status === 'vacant').length,
-            pendingSubmissions: pendingResult.count || 0
+            pendingSubmissions: pendingResult.count || 0,
+            maintenanceTotal: maintenanceRows.length,
+            maintenanceOpen: maintenanceRows.filter(request => request.status === 'open').length,
+            maintenanceInProgress: maintenanceRows.filter(request => request.status === 'in_progress').length,
+            maintenanceResolved: maintenanceRows.filter(request => request.status === 'resolved').length
           };
 
           this.dashboard.recentPayments = (paymentsResult.data || []).map(payment => ({
@@ -3381,6 +3736,23 @@
           return 'bg-emerald-100 text-emerald-700';
         },
 
+        subscriptionDashboardLabel() {
+          const status = this.subscription?.status || 'trial';
+          return this.subscriptionExpiringSoon() ? `${this.titleCase(status)} - Expiring soon` : this.titleCase(status);
+        },
+
+        subscriptionExpiringSoon() {
+          if (!this.subscription?.expires_at) return false;
+          const days = this.daysUntil(this.subscription.expires_at.slice(0, 10));
+          return days >= 0 && days <= 7 && this.subscription.status !== 'suspended';
+        },
+
+        subscriptionDashboardBadgeClass() {
+          if (this.subscription?.status === 'suspended') return 'bg-red-100 text-red-700';
+          if (this.subscriptionExpiringSoon()) return 'bg-yellow-100 text-amber-700';
+          return this.statusBadgeClass(this.subscription?.status || 'trial');
+        },
+
         formatCurrency(value) {
           return new Intl.NumberFormat(undefined, {
             style: 'currency',
@@ -3391,6 +3763,18 @@
         currentLandlordId() {
           if (this.profile?.role === 'landlord') return this.profile.id;
           return this.profile?.landlord_id || null;
+        },
+
+        supportMailto() {
+          return `mailto:${SUPPORT_EMAIL}`;
+        },
+
+        copyrightText() {
+          return `All rights reserved to ${COMPANY_NAME}.`;
+        },
+
+        canViewFinancials() {
+          return this.profile?.role === 'landlord';
         },
 
         canManageLeases() {
@@ -3415,14 +3799,20 @@
 
           const canLoadTenants = this.profile?.role === 'landlord' || this.permissions.can_view_tenants || this.permissions.can_manage_leases;
           const canLoadLeases = this.profile?.role === 'landlord' || this.permissions.can_manage_leases || this.permissions.can_view_tenants || this.permissions.can_view_payments || this.permissions.can_verify_payments;
+          const unitSelect = this.canViewFinancials()
+            ? 'id, property_id, unit_number, bedrooms, bathrooms, monthly_rent, status, created_at, properties(id, name, address, city)'
+            : 'id, property_id, unit_number, bedrooms, bathrooms, status, created_at, properties(id, name, address, city)';
+          const leaseSelect = this.canViewFinancials()
+            ? 'id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone)'
+            : 'id, unit_id, tenant_id, landlord_id, start_date, end_date, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone)';
           const results = await Promise.all([
             supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').order('created_at', { ascending: false }),
-            supabaseClient.from('units').select('id, property_id, unit_number, bedrooms, bathrooms, monthly_rent, status, created_at, properties(id, name, address, city)').order('created_at', { ascending: false }),
+            supabaseClient.from('units').select(unitSelect).order('created_at', { ascending: false }),
             canLoadTenants
               ? supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_accepted, created_at').order('full_name', { ascending: true })
               : Promise.resolve({ data: [], error: null }),
             canLoadLeases
-              ? supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone)').order('end_date', { ascending: true })
+              ? supabaseClient.from('leases').select(leaseSelect).order('end_date', { ascending: true })
               : Promise.resolve({ data: [], error: null })
           ]);
 
@@ -3669,7 +4059,7 @@
           this.propertyUnit.currentLease = activeLease;
 
           const [paymentsResult, maintenanceResult] = await Promise.all([
-            activeLease
+            activeLease && this.canViewFinancials()
               ? supabaseClient.from('payments').select('id, lease_id, amount_paid, payment_date, payment_method, notes, receipt_number, proof_file_path, proof_file_name, proof_file_size, proof_file_uploaded_by, proof_file_uploaded_at, recorded_by, created_at, payment_submissions(id, proof_image_url, proof_image_path, proof_image_name, proof_image_size)').eq('lease_id', activeLease.id).order('payment_date', { ascending: false })
               : Promise.resolve({ data: [], error: null }),
             supabaseClient.from('maintenance_requests').select('id, unit_id, lease_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at').eq('unit_id', unit.id).order('created_at', { ascending: false })
@@ -3902,6 +4292,62 @@
           this.payments.verifiedPayments = (verifiedResult.data || []).map(payment => this.normalizePayment(payment, recordedByMap));
           this.payments.leases = (leasesResult.data || []).map(lease => this.normalizeLease(lease));
           this.payments.loading = false;
+        },
+
+        async loadLandlordFinanceData() {
+          if (!this.canViewFinancials()) return;
+
+          this.finance.loading = true;
+          this.finance.error = '';
+
+          const { data, error } = await supabaseClient
+            .from('payments')
+            .select('id, amount_paid, payment_date, payment_method, receipt_number, created_at, leases(id, tenants(id, full_name, email), units(id, unit_number, properties(id, name, address, city)))')
+            .order('payment_date', { ascending: false });
+
+          if (error) {
+            this.finance.error = error.message;
+            this.finance.loading = false;
+            return;
+          }
+
+          const payments = (data || []).map(payment => {
+            const lease = payment.leases || {};
+            const unit = lease.units || {};
+            const property = unit.properties || {};
+            return {
+              id: payment.id,
+              amount: Number(payment.amount_paid || 0),
+              date: payment.payment_date || payment.created_at,
+              method: payment.payment_method,
+              receipt: payment.receipt_number,
+              tenant: lease.tenants?.full_name || '-',
+              unit: unit.unit_number || '-',
+              property: property.name || 'Unassigned property'
+            };
+          });
+
+          const now = new Date();
+          const monthKey = now.toISOString().slice(0, 7);
+          const yearKey = String(now.getFullYear());
+          const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+          const byPropertyMap = new Map();
+          payments.forEach(payment => {
+            const current = byPropertyMap.get(payment.property) || { property: payment.property, count: 0, total: 0 };
+            current.count += 1;
+            current.total += payment.amount;
+            byPropertyMap.set(payment.property, current);
+          });
+
+          this.finance.payments = payments;
+          this.finance.byProperty = Array.from(byPropertyMap.values()).sort((a, b) => b.total - a.total);
+          this.finance.stats = {
+            totalRevenue,
+            monthRevenue: payments.filter(payment => String(payment.date || '').slice(0, 7) === monthKey).reduce((sum, payment) => sum + payment.amount, 0),
+            yearRevenue: payments.filter(payment => String(payment.date || '').slice(0, 4) === yearKey).reduce((sum, payment) => sum + payment.amount, 0),
+            averagePayment: payments.length ? totalRevenue / payments.length : 0
+          };
+          this.finance.loading = false;
         },
 
         paymentUnitLabel(row) {
@@ -5583,7 +6029,6 @@
         loadSettingsData() {
           this.settings.error = '';
           this.settings.message = '';
-          this.settings.telegramLink = '';
           this.settings.profileForm = {
             fullName: this.profile?.full_name || '',
             phone: this.profile?.phone || '',
@@ -5621,34 +6066,6 @@
           this.profile = data;
           this.settings.message = 'Profile updated.';
           this.settings.savingProfile = false;
-        },
-
-        async generateTelegramLink() {
-          if (!this.profile?.id) return;
-
-          this.settings.error = '';
-          this.settings.message = '';
-          this.settings.savingTelegram = true;
-
-          // Telegram bot webhook is a Supabase Edge Function - future step.
-          const { data, error } = await supabaseClient
-            .from('telegram_link_tokens')
-            .insert({
-              profile_id: this.profile.id,
-              expires_at: this.addHoursIso(48)
-            })
-            .select('token')
-            .single();
-
-          if (error) {
-            this.settings.error = error.message;
-            this.settings.savingTelegram = false;
-            return;
-          }
-
-          this.settings.telegramLink = `https://t.me/RentRadarBot?start=${data.token}`;
-          this.settings.message = 'Telegram link generated. It expires in 48 hours.';
-          this.settings.savingTelegram = false;
         },
 
         async changePassword() {
@@ -5894,8 +6311,9 @@
           if (profile.role === 'super_admin') {
             this.currentShell = 'super_admin';
             this.currentPage = this.resolveActivePage('landlord-management', previousShell, previousPage);
-            this.pageTitle = 'Landlord Management';
+            this.pageTitle = this.titleForPage(this.currentPage);
             this.storeCurrentPage(this.currentPage);
+            if (!this.admin.financeForm.paidAt) this.resetAdminFinanceForm();
             this.booting = false;
             await this.refreshCurrentPage();
             return;
@@ -6015,6 +6433,7 @@
         async refreshCurrentPage() {
           if (this.currentShell === 'super_admin') {
             await this.loadSuperAdminData();
+            if (!this.admin.financeForm.paidAt) this.resetAdminFinanceForm();
             return;
           }
 
@@ -6023,6 +6442,7 @@
           if (this.currentPage === 'properties') await this.loadPropertyUnitData();
             if (this.currentPage === 'tenants' || this.currentPage === 'leases') await this.loadTenantLeaseData();
             if (this.currentPage === 'payments') await this.loadPaymentsData();
+            if (this.currentPage === 'finance') await this.loadLandlordFinanceData();
             if (this.currentPage === 'maintenance') await this.loadMaintenanceData();
             if (this.currentPage === 'staff') await this.loadStaffData();
             if (this.currentPage === 'notifications') await this.loadNotifications();
@@ -6060,6 +6480,15 @@
 
           if (page === 'payments' && this.currentShell === 'app') {
             await this.loadPaymentsData();
+          }
+
+          if (page === 'finance' && this.currentShell === 'app') {
+            await this.loadLandlordFinanceData();
+          }
+
+          if ((page === 'admin-finance' || page === 'landlord-management') && this.currentShell === 'super_admin') {
+            if (!this.admin.financeForm.paidAt) this.resetAdminFinanceForm();
+            await this.loadSuperAdminData();
           }
 
           if (page === 'maintenance' && this.currentShell === 'app') {
@@ -6104,11 +6533,14 @@
             tenants: 'Tenants',
             leases: 'Leases',
             payments: 'Payments',
+            finance: 'Finance',
             maintenance: 'Maintenance',
             staff: 'Staff',
             notifications: 'Notifications',
             'my-account': 'My Account',
             settings: 'Settings',
+            'admin-finance': 'Finance',
+            'landlord-management': 'Landlord Management',
             'tenant-home': 'Home',
             'tenant-payments': 'Payments',
             'tenant-maintenance': 'Maintenance',
@@ -6142,6 +6574,29 @@
           };
           this.unreadCount = 0;
           this.notifications.items = [];
+          this.dashboard.stats = {
+            properties: 0,
+            units: 0,
+            occupied: 0,
+            vacant: 0,
+            pendingSubmissions: 0,
+            maintenanceTotal: 0,
+            maintenanceOpen: 0,
+            maintenanceInProgress: 0,
+            maintenanceResolved: 0
+          };
+          this.finance = {
+            loading: false,
+            error: '',
+            payments: [],
+            byProperty: [],
+            stats: {
+              totalRevenue: 0,
+              monthRevenue: 0,
+              yearRevenue: 0,
+              averagePayment: 0
+            }
+          };
           this.tenant = {
             loading: false,
             saving: false,
@@ -6168,11 +6623,9 @@
           this.settings = {
             loading: false,
             savingProfile: false,
-            savingTelegram: false,
             savingPassword: false,
             error: '',
             message: '',
-            telegramLink: '',
             profileForm: {
               fullName: '',
               phone: '',
