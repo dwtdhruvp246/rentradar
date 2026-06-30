@@ -2579,7 +2579,19 @@
                   return;
                 }
 
-                if (session?.user && event === 'SIGNED_IN') {
+                if (!session?.user) return;
+
+                const sameLoadedUser = this.user?.id === session.user.id
+                  && this.profile?.id === session.user.id
+                  && !['login', 'invite'].includes(this.currentShell);
+
+                if (sameLoadedUser) {
+                  this.user = session.user;
+                  this.authError = '';
+                  return;
+                }
+
+                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
                   await this.loadAuthenticatedUser(session.user);
                 }
               } catch (error) {
@@ -2839,6 +2851,14 @@
         restorePage(defaultPage) {
           const storedPage = this.readStoredPage();
           return this.isPageAllowed(storedPage) ? storedPage : defaultPage;
+        },
+
+        resolveActivePage(defaultPage, previousShell, previousPage) {
+          if (previousShell === this.currentShell && this.isPageAllowed(previousPage)) {
+            return previousPage;
+          }
+
+          return this.restorePage(defaultPage);
         },
 
         async loadSuperAdminData() {
@@ -5689,12 +5709,20 @@
             return;
           }
 
-          if (data.user) {
+          const sameLoadedUser = data.user
+            && this.user?.id === data.user.id
+            && this.profile?.id === data.user.id
+            && !['login', 'invite'].includes(this.currentShell);
+
+          if (data.user && !sameLoadedUser) {
             await this.loadAuthenticatedUser(data.user);
           }
         },
 
         async loadAuthenticatedUser(authUser) {
+          const previousShell = this.currentShell;
+          const previousPage = this.currentPage;
+
           this.booting = true;
           this.user = authUser;
           this.authError = '';
@@ -5721,7 +5749,7 @@
 
           if (profile.role === 'super_admin') {
             this.currentShell = 'super_admin';
-            this.currentPage = this.restorePage('landlord-management');
+            this.currentPage = this.resolveActivePage('landlord-management', previousShell, previousPage);
             this.pageTitle = 'Landlord Management';
             this.storeCurrentPage(this.currentPage);
             this.booting = false;
@@ -5742,8 +5770,7 @@
             }
 
             this.currentShell = 'app';
-            this.currentPage = this.restorePage('dashboard');
-            this.pageTitle = 'Dashboard';
+            this.currentPage = this.resolveActivePage('dashboard', previousShell, previousPage);
             this.pageTitle = this.titleForPage(this.currentPage);
             this.storeCurrentPage(this.currentPage);
             await this.loadUnreadCount(profile.id);
@@ -5761,7 +5788,7 @@
               'Staff permissions are taking too long. Please refresh once.'
             );
             this.currentShell = 'app';
-            this.currentPage = this.restorePage('dashboard');
+            this.currentPage = this.resolveActivePage('dashboard', previousShell, previousPage);
             this.pageTitle = this.titleForPage(this.currentPage);
             this.storeCurrentPage(this.currentPage);
             await this.loadUnreadCount(profile.id);
@@ -5774,7 +5801,7 @@
 
           if (profile.role === 'tenant') {
             this.currentShell = 'tenant';
-            this.currentPage = this.restorePage('tenant-home');
+            this.currentPage = this.resolveActivePage('tenant-home', previousShell, previousPage);
             this.pageTitle = this.titleForPage(this.currentPage);
             this.storeCurrentPage(this.currentPage);
             await this.loadUnreadCount(profile.id);
