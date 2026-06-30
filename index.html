@@ -746,16 +746,7 @@
                       <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" x-text="propertyUnit.error"></div>
                     </template>
 
-                    <form x-show="canManageProperties()" class="grid gap-3 lg:grid-cols-[1.2fr_0.9fr_0.7fr_0.7fr_0.9fr_auto]" @submit.prevent="addUnit">
-                      <label class="block">
-                        <span class="mb-2 block text-sm font-medium text-slate-700">Property</span>
-                        <select class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" x-model="propertyUnit.unitForm.propertyId" required>
-                          <option value="">Select property</option>
-                          <template x-for="property in propertyUnit.properties" :key="property.id">
-                            <option :value="property.id" x-text="property.name"></option>
-                          </template>
-                        </select>
-                      </label>
+                    <form x-show="canManageProperties()" class="grid gap-3 lg:grid-cols-[1fr_0.8fr_0.8fr_1fr_auto]" @submit.prevent="addUnit">
                       <label class="block">
                         <span class="mb-2 block text-sm font-medium text-slate-700">Unit number</span>
                         <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="propertyUnit.unitForm.unitNumber" required>
@@ -3513,11 +3504,18 @@
         async addUnit() {
           this.propertyUnit.error = '';
           this.propertyUnit.saving = true;
+          const propertyId = this.propertyUnit.selectedPropertyId || this.propertyUnit.unitForm.propertyId;
+
+          if (!propertyId) {
+            this.propertyUnit.error = 'Open a property before adding a unit.';
+            this.propertyUnit.saving = false;
+            return;
+          }
 
           const { error } = await supabaseClient
             .from('units')
             .insert({
-              property_id: this.propertyUnit.unitForm.propertyId,
+              property_id: propertyId,
               unit_number: this.propertyUnit.unitForm.unitNumber,
               bedrooms: Number(this.propertyUnit.unitForm.bedrooms || 0),
               bathrooms: Number(this.propertyUnit.unitForm.bathrooms || 0),
@@ -3532,7 +3530,7 @@
           }
 
           this.propertyUnit.unitForm = {
-            propertyId: this.propertyUnit.selectedPropertyId || '',
+            propertyId,
             unitNumber: '',
             bedrooms: 1,
             bathrooms: 1,
