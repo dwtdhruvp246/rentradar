@@ -5711,7 +5711,7 @@
 
           if (profileError || !profile) {
             await supabaseClient.auth.signOut();
-            this.authError = profileError?.message || 'Your login exists, but no RentRadar profile is linked to this account. Create or repair the matching profiles row in Supabase.';
+            this.authError = 'Your account does not exist or has been removed. Please contact your landlord or RentRadar administrator.';
             this.currentShell = 'login';
             this.booting = false;
             return;
