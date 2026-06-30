@@ -2749,31 +2749,28 @@
             }
           }
 
+          let tokenHandledByRpc = false;
+
           if (tokenRow.role === 'tenant') {
-            const tenantUpdate = supabaseClient
-              .from('tenants')
-              .update({
-                profile_id: signUpData.user.id,
-                invite_accepted: true
-              });
-
-            const tenantScopedUpdate = metadata.tenant_id
-              ? tenantUpdate.eq('id', metadata.tenant_id)
-              : tenantUpdate.eq('landlord_id', tokenRow.landlord_id).eq('email', tokenRow.email).eq('invite_accepted', false);
-
-            const { error: tenantError } = await tenantScopedUpdate;
+            const { error: tenantError } = await supabaseClient.rpc('accept_tenant_invite', {
+              p_invite_id: tokenRow.id
+            });
 
             if (tenantError) {
               this.invite.submitError = tenantError.message;
               this.invite.submitting = false;
               return;
             }
+
+            tokenHandledByRpc = true;
           }
 
-          const { error: tokenError } = await supabaseClient
-            .from('invite_tokens')
-            .update({ used: true })
-            .eq('id', tokenRow.id);
+          const { error: tokenError } = tokenHandledByRpc
+            ? { error: null }
+            : await supabaseClient
+              .from('invite_tokens')
+              .update({ used: true })
+              .eq('id', tokenRow.id);
 
           if (tokenError) {
             this.invite.submitError = tokenError.message;
@@ -4609,6 +4606,14 @@
           this.tenant.loading = true;
           this.tenant.error = '';
 
+          const { error: linkError } = await supabaseClient.rpc('link_current_tenant_account');
+
+          if (linkError) {
+            this.tenant.error = linkError.message;
+            this.tenant.loading = false;
+            return;
+          }
+
           const { data: tenantRows, error: tenantError } = await supabaseClient
             .from('tenants')
             .select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_accepted, created_at')
@@ -4853,7 +4858,10 @@
 
           this.tenantLease.properties = propertiesResult.data || [];
           this.tenantLease.units = (unitsResult.data || []).map(unit => ({ ...unit, property: unit.properties || null }));
-          this.tenantLease.tenants = tenantsResult.data || [];
+          this.tenantLease.tenants = (tenantsResult.data || []).map(tenant => ({
+            ...tenant,
+            invite_accepted: Boolean(tenant.invite_accepted || tenant.profile_id)
+          }));
           this.tenantLease.leases = (leasesResult.data || []).map(lease => ({
             ...lease,
             tenant: lease.tenants || null,
