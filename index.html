@@ -234,6 +234,10 @@
               <button class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50" type="button" @click="logout">Logout</button>
             </div>
           </div>
+          <div class="mx-auto flex max-w-7xl flex-col gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+            <p x-text="copyrightText()"></p>
+            <a class="font-semibold text-emerald-700 hover:underline" :href="supportMailto()">Contact Support</a>
+          </div>
         </header>
 
         <section x-show="currentPage === 'landlord-management'" id="super-admin-landlord-management" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -277,18 +281,6 @@
             <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
               <p class="text-sm font-medium text-slate-500">Suspended</p>
               <p class="mt-2 text-3xl font-bold text-red-700" x-text="admin.stats.suspended"></p>
-            </article>
-            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-              <p class="text-sm font-medium text-slate-500">Tenants</p>
-              <p class="mt-2 text-3xl font-bold text-slate-900" x-text="admin.stats.tenants"></p>
-            </article>
-            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-              <p class="text-sm font-medium text-slate-500">Staff</p>
-              <p class="mt-2 text-3xl font-bold text-slate-900" x-text="admin.stats.staff"></p>
-            </article>
-            <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft sm:col-span-2">
-              <p class="text-sm font-medium text-slate-500">Platform Revenue</p>
-              <p class="mt-2 text-3xl font-bold text-emerald-700" x-text="formatCurrency(admin.stats.revenue)"></p>
             </article>
           </div>
 
@@ -587,17 +579,13 @@
             </section>
           </div>
         </template>
-        <footer class="mx-auto flex max-w-7xl flex-col gap-3 px-4 pb-6 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p x-text="copyrightText()"></p>
-          <a class="inline-flex w-max rounded-lg border border-emerald-200 bg-white px-3 py-2 font-semibold text-emerald-700 hover:bg-emerald-50" :href="supportMailto()">Contact Support</a>
-        </footer>
       </main>
     </template>
 
     <template x-if="!booting && currentShell === 'app'">
       <main id="landlord-staff-shell" class="min-h-screen bg-slate-50">
         <div class="flex min-h-screen">
-          <aside class="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
+          <aside class="hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
             <div class="flex h-16 items-center gap-3 border-b border-slate-200 px-5">
               <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 text-white">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -606,7 +594,7 @@
               </div>
               <span class="text-base font-bold text-slate-900">RentRadar</span>
             </div>
-            <nav id="landlord-staff-sidebar" class="space-y-1 p-3">
+            <nav id="landlord-staff-sidebar" class="flex-1 space-y-1 p-3">
               <template x-for="item in appNavItems()" :key="item.page">
                 <button
                   class="flex w-full items-center gap-3 rounded-lg border-l-4 px-3 py-2.5 text-left text-sm font-semibold transition"
@@ -618,12 +606,16 @@
                 </button>
               </template>
             </nav>
+            <div class="border-t border-slate-200 p-4 text-xs text-slate-500">
+              <p x-text="copyrightText()"></p>
+              <a class="mt-2 inline-flex font-semibold text-emerald-700 hover:underline" :href="supportMailto()">Contact Support</a>
+            </div>
           </aside>
 
           <template x-if="sidebarOpen">
             <div class="fixed inset-0 z-40 lg:hidden">
               <button class="absolute inset-0 bg-slate-900/40" type="button" @click="sidebarOpen = false" aria-label="Close navigation"></button>
-              <aside class="relative h-full w-72 border-r border-slate-200 bg-white shadow-soft">
+              <aside class="relative flex h-full w-72 flex-col border-r border-slate-200 bg-white shadow-soft">
                 <div class="flex h-16 items-center justify-between border-b border-slate-200 px-5">
                   <div class="flex items-center gap-3">
                     <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 text-white">
@@ -639,7 +631,7 @@
                     </svg>
                   </button>
                 </div>
-                <nav class="space-y-1 p-3">
+                <nav class="flex-1 space-y-1 overflow-y-auto p-3">
                   <template x-for="item in appNavItems()" :key="item.page">
                     <button
                       class="flex w-full items-center gap-3 rounded-lg border-l-4 px-3 py-2.5 text-left text-sm font-semibold transition"
@@ -651,6 +643,10 @@
                     </button>
                   </template>
                 </nav>
+                <div class="border-t border-slate-200 p-4 text-xs text-slate-500">
+                  <p x-text="copyrightText()"></p>
+                  <a class="mt-2 inline-flex font-semibold text-emerald-700 hover:underline" :href="supportMailto()">Contact Support</a>
+                </div>
               </aside>
             </div>
           </template>
@@ -1071,7 +1067,7 @@
                     <template x-if="propertyUnit.detailMode === 'payment' && canViewFinancials()">
                       <form class="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto]" @submit.prevent="logPaymentForSelectedUnit">
                         <label class="block">
-                          <span class="mb-2 block text-sm font-medium text-slate-700">Amount</span>
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Rent amount</span>
                           <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" x-model.number="propertyUnit.paymentForm.amount" required>
                         </label>
                         <label class="block">
@@ -1509,7 +1505,7 @@
                       <div class="mb-5 flex items-start justify-between gap-4">
                         <div>
                           <h2 class="text-lg font-bold text-slate-900">Log Payment Manually</h2>
-                          <p class="mt-1 text-sm text-slate-500">Record a verified rent payment against an active lease.</p>
+                          <p class="mt-1 text-sm text-slate-500">Record a verified rent payment against an active lease. Do not record refundable deposits here.</p>
                         </div>
                         <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button" @click="closePaymentModal" aria-label="Close modal">
                           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
@@ -1526,7 +1522,7 @@
                           </select>
                         </label>
                         <label class="block">
-                          <span class="mb-2 block text-sm font-medium text-slate-700">Amount</span>
+                          <span class="mb-2 block text-sm font-medium text-slate-700">Rent amount</span>
                           <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" x-model.number="payments.manualForm.amount" required>
                         </label>
                         <label class="block">
@@ -1591,7 +1587,7 @@
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <h1 class="text-xl font-bold text-slate-900">Finance</h1>
-                        <p class="mt-1 text-sm text-slate-500">Track revenue generated from verified rent payments.</p>
+                        <p class="mt-1 text-sm text-slate-500">Track revenue generated from verified rent payments. Refundable deposits are not counted as revenue.</p>
                       </div>
                       <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="refreshCurrentPage">Refresh</button>
                     </div>
@@ -2063,7 +2059,7 @@
                     </template>
                   </section>
 
-                  <section class="grid gap-6 xl:grid-cols-2">
+                  <section>
                     <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                       <h2 class="text-lg font-bold text-slate-900">Profile</h2>
                       <form class="mt-5 space-y-4" @submit.prevent="saveProfileSettings">
@@ -2083,12 +2079,6 @@
                           <button class="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="settings.savingProfile">Save Profile</button>
                         </div>
                       </form>
-                    </article>
-
-                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-                      <h2 class="text-lg font-bold text-slate-900">Support</h2>
-                      <p class="mt-3 text-sm leading-6 text-slate-600">Contact support for account, billing, or setup help.</p>
-                      <a class="mt-5 inline-flex rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600" :href="supportMailto()">Contact Support</a>
                     </article>
                   </section>
 
@@ -2162,10 +2152,6 @@
                   </section>
                 </div>
               </template>
-              <footer class="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-5 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                <p x-text="copyrightText()"></p>
-                <a class="inline-flex w-max rounded-lg border border-emerald-200 bg-white px-3 py-2 font-semibold text-emerald-700 hover:bg-emerald-50" :href="supportMailto()">Contact Support</a>
-              </footer>
             </section>
           </div>
         </div>
@@ -2206,6 +2192,10 @@
               </button>
             </template>
           </nav>
+          <div class="flex flex-col gap-1 border-t border-slate-100 px-4 py-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <p x-text="copyrightText()"></p>
+            <a class="font-semibold text-emerald-700 hover:underline" :href="supportMailto()">Contact Support</a>
+          </div>
         </header>
 
         <section class="p-4 pb-24">
@@ -2292,13 +2282,13 @@
                 <div class="mb-5 flex items-start justify-between gap-4">
                   <div>
                     <h1 class="text-xl font-bold text-slate-900">Payments</h1>
-                    <p class="mt-1 text-sm text-slate-500">Submit proof and download verified receipts.</p>
+                    <p class="mt-1 text-sm text-slate-500">Submit rent proof and download verified receipts.</p>
                   </div>
                   <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="refreshCurrentPage">Refresh</button>
                 </div>
                 <form class="grid gap-3 sm:grid-cols-2" @submit.prevent="submitTenantPayment">
                   <label class="block">
-                    <span class="mb-2 block text-sm font-medium text-slate-700">Amount</span>
+                    <span class="mb-2 block text-sm font-medium text-slate-700">Rent amount</span>
                     <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="number" min="0.01" step="0.01" x-model.number="tenant.paymentForm.amount" required>
                   </label>
                   <label class="block">
@@ -2443,11 +2433,6 @@
                 </form>
               </section>
               <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-                <h2 class="text-sm font-semibold text-slate-900">Support</h2>
-                <p class="mt-2 text-sm text-slate-600">Contact support for account or payment help.</p>
-                <a class="mt-4 inline-flex rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600" :href="supportMailto()">Contact Support</a>
-              </section>
-              <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                 <h2 class="text-sm font-semibold text-slate-900">Change Password</h2>
                 <form class="mt-4 space-y-4" @submit.prevent="changePassword">
                   <label class="block"><span class="mb-2 block text-sm font-medium text-slate-700">New password</span><input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="password" autocomplete="new-password" minlength="8" x-model="settings.passwordForm.password" required></label>
@@ -2457,10 +2442,6 @@
               </section>
             </div>
           </template>
-          <footer class="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-5 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-            <p x-text="copyrightText()"></p>
-            <a class="inline-flex w-max rounded-lg border border-emerald-200 bg-white px-3 py-2 font-semibold text-emerald-700 hover:bg-emerald-50" :href="supportMailto()">Contact Support</a>
-          </footer>
         </section>
       </main>
     </template>
