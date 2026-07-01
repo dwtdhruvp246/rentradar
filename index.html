@@ -379,7 +379,10 @@
           </div>
 
           <section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-            <h2 class="text-lg font-bold text-slate-900">Record Payment</h2>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 class="text-lg font-bold text-slate-900" x-text="admin.financeForm.id ? 'Edit Payment' : 'Record Payment'"></h2>
+              <button x-show="admin.financeForm.id" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="resetAdminFinanceForm">Cancel Edit</button>
+            </div>
             <form class="mt-5 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.8fr_1fr_auto]" @submit.prevent="recordPlatformPayment">
               <label class="block">
                 <span class="mb-2 block text-sm font-medium text-slate-700">Landlord</span>
@@ -410,7 +413,7 @@
                 <span class="mb-2 block text-sm font-medium text-slate-700">Notes</span>
                 <input class="w-full rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" type="text" x-model.trim="admin.financeForm.notes">
               </label>
-              <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="admin.saving">Add</button>
+              <button class="self-end rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60" type="submit" :disabled="admin.saving" x-text="admin.financeForm.id ? 'Save' : 'Add'"></button>
             </form>
           </section>
 
@@ -424,11 +427,12 @@
                     <th class="px-4 py-3 font-semibold">Paid Date</th>
                     <th class="px-4 py-3 font-semibold">Period</th>
                     <th class="px-4 py-3 font-semibold">Notes</th>
+                    <th class="px-4 py-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
                   <template x-if="!admin.loading && admin.financePayments.length === 0">
-                    <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No platform payments recorded.</td></tr>
+                    <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="6">No platform payments recorded.</td></tr>
                   </template>
                   <template x-for="payment in admin.financePayments" :key="payment.id">
                     <tr class="odd:bg-white even:bg-slate-50/60">
@@ -437,6 +441,12 @@
                       <td class="px-4 py-3 text-slate-700" x-text="formatDate(payment.paid_at)"></td>
                       <td class="px-4 py-3 text-slate-700" x-text="`${formatDate(payment.period_start)} - ${formatDate(payment.period_end)}`"></td>
                       <td class="max-w-72 truncate px-4 py-3 text-slate-700" x-text="payment.notes || '-'"></td>
+                      <td class="px-4 py-3">
+                        <div class="flex flex-wrap gap-2">
+                          <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="editPlatformPayment(payment)">Edit</button>
+                          <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deletePlatformPayment(payment)">Delete</button>
+                        </div>
+                      </td>
                     </tr>
                   </template>
                 </tbody>
@@ -708,11 +718,7 @@
                     </article>
                   </div>
 
-                  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-                      <p class="text-sm font-medium text-slate-500">Maintenance Requests</p>
-                      <p class="mt-2 text-3xl font-bold text-slate-900" x-text="dashboard.stats.maintenanceTotal"></p>
-                    </article>
+                  <div class="grid gap-4 sm:grid-cols-3">
                     <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
                       <p class="text-sm font-medium text-slate-500">Open</p>
                       <p class="mt-2 text-3xl font-bold text-amber-700" x-text="dashboard.stats.maintenanceOpen"></p>
@@ -749,12 +755,13 @@
                               <th class="px-4 py-3 font-semibold">Amount</th>
                               <th class="px-4 py-3 font-semibold">Date</th>
                               <th class="px-4 py-3 font-semibold">Method</th>
+                              <th class="px-4 py-3 font-semibold">Actions</th>
                             </tr>
                           </thead>
                           <tbody class="divide-y divide-slate-200">
                             <template x-if="!dashboard.loading && dashboard.recentPayments.length === 0">
                               <tr>
-                                <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No recent payments.</td>
+                                <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="6">No recent payments.</td>
                               </tr>
                             </template>
                             <template x-for="payment in dashboard.recentPayments" :key="payment.id">
@@ -764,6 +771,7 @@
                                 <td class="px-4 py-3 text-slate-700" x-text="formatCurrency(payment.amount)"></td>
                                 <td class="px-4 py-3 text-slate-700" x-text="formatDate(payment.date)"></td>
                                 <td class="px-4 py-3 text-slate-700" x-text="titleCase(payment.method)"></td>
+                                <td class="px-4 py-3"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewDashboardPayment(payment)">View</button></td>
                               </tr>
                             </template>
                           </tbody>
@@ -780,6 +788,7 @@
                           <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                             <tr>
                               <th class="px-4 py-3 font-semibold">Tenant</th>
+                              <th class="px-4 py-3 font-semibold">Property</th>
                               <th class="px-4 py-3 font-semibold">Unit</th>
                               <th class="px-4 py-3 font-semibold">End Date</th>
                               <th class="px-4 py-3 font-semibold">Days</th>
@@ -788,12 +797,13 @@
                           <tbody class="divide-y divide-slate-200">
                             <template x-if="!dashboard.loading && dashboard.leaseExpirations.length === 0">
                               <tr>
-                                <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="4">No upcoming expirations.</td>
+                                <td class="px-4 py-8 text-center text-sm text-slate-500" colspan="5">No upcoming expirations.</td>
                               </tr>
                             </template>
                             <template x-for="lease in dashboard.leaseExpirations" :key="lease.id">
                               <tr class="odd:bg-white even:bg-slate-50/60">
                                 <td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant"></td>
+                                <td class="px-4 py-3 text-slate-700" x-text="lease.property"></td>
                                 <td class="px-4 py-3 text-slate-700" x-text="lease.unit"></td>
                                 <td class="px-4 py-3 text-slate-700" x-text="formatDate(lease.endDate)"></td>
                                 <td class="px-4 py-3">
@@ -803,6 +813,35 @@
                             </template>
                           </tbody>
                         </table>
+                      </div>
+                    </section>
+                  </div>
+
+                  <div x-show="dashboard.selectedPayment" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+                    <section class="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                      <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                          <h2 class="text-lg font-bold text-slate-900">Payment Details</h2>
+                          <p class="mt-1 text-sm text-slate-500" x-text="dashboard.selectedPayment?.receipt_number || 'Verified payment'"></p>
+                        </div>
+                        <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" type="button" @click="dashboard.selectedPayment = null" aria-label="Close payment details">
+                          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                        </button>
+                      </div>
+                      <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Tenant</dt><dd class="mt-1 font-semibold text-slate-900" x-text="dashboard.selectedPayment?.tenant || '-'"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Property</dt><dd class="mt-1 font-semibold text-slate-900" x-text="dashboard.selectedPayment?.property || '-'"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Unit</dt><dd class="mt-1 font-semibold text-slate-900" x-text="dashboard.selectedPayment?.unit || '-'"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Rent Period</dt><dd class="mt-1 font-semibold text-slate-900" x-text="paymentPeriodLabel(dashboard.selectedPayment)"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Amount</dt><dd class="mt-1 font-semibold text-slate-900" x-text="formatCurrency(dashboard.selectedPayment?.amount_paid)"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Payment Date</dt><dd class="mt-1 font-semibold text-slate-900" x-text="formatDate(dashboard.selectedPayment?.payment_date)"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Method</dt><dd class="mt-1 font-semibold text-slate-900" x-text="titleCase(dashboard.selectedPayment?.payment_method)"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3"><dt class="text-slate-500">Receipt</dt><dd class="mt-1 font-semibold text-slate-900" x-text="dashboard.selectedPayment?.receipt_number || '-'"></dd></div>
+                        <div class="rounded-lg bg-slate-50 p-3 sm:col-span-2"><dt class="text-slate-500">Notes</dt><dd class="mt-1 font-semibold text-slate-900" x-text="dashboard.selectedPayment?.notes || '-'"></dd></div>
+                      </dl>
+                      <div class="mt-5 flex flex-wrap justify-end gap-2">
+                        <button x-show="paymentProofPath(dashboard.selectedPayment)" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openPaymentProof(dashboard.selectedPayment)">View Proof</button>
+                        <button class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="downloadReceipt(dashboard.selectedPayment)">Download Receipt</button>
                       </div>
                     </section>
                   </div>
@@ -984,7 +1023,10 @@
                             <p><span class="text-slate-500">Lease:</span> <span class="font-medium text-slate-900" x-text="`${formatDate(propertyUnit.currentLease.start_date)} - ${formatDate(propertyUnit.currentLease.end_date)}`"></span></p>
                             <p x-show="canViewFinancials()"><span class="text-slate-500">Rent:</span> <span class="font-medium text-slate-900" x-text="formatCurrency(propertyUnit.currentLease.monthly_rent)"></span></p>
                             <p x-show="canViewFinancials()"><span class="text-slate-500">Deposit:</span> <span class="font-medium text-slate-900" x-text="propertyUnit.currentLease.deposit_paid ? 'Paid' : 'Unpaid'"></span></p>
-                            <button x-show="leaseDocumentPath(propertyUnit.currentLease)" class="text-sm font-semibold text-emerald-700 underline" type="button" @click="openLeaseDocument(propertyUnit.currentLease)">Download Lease Document</button>
+                            <div class="flex flex-wrap gap-3 sm:col-span-2">
+                              <button class="text-sm font-semibold text-emerald-700 underline" type="button" @click="viewCurrentUnitLease">View Lease</button>
+                              <button x-show="leaseDocumentPath(propertyUnit.currentLease)" class="text-sm font-semibold text-emerald-700 underline" type="button" @click="openLeaseDocument(propertyUnit.currentLease)">Download Lease Document</button>
+                            </div>
                           </div>
                         </template>
                         <template x-if="!propertyUnit.currentLease">
@@ -1203,13 +1245,14 @@
                             <th class="px-4 py-3 font-semibold">Email</th>
                             <th class="px-4 py-3 font-semibold">ID</th>
                             <th class="px-4 py-3 font-semibold">Linked Unit</th>
+                            <th class="px-4 py-3 font-semibold">Property</th>
                             <th class="px-4 py-3 font-semibold">Invite</th>
                             <th class="px-4 py-3 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200">
                           <template x-if="!tenantLease.loading && tenantLease.tenants.length === 0">
-                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="7">No tenants yet.</td></tr>
+                            <tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="8">No tenants yet.</td></tr>
                           </template>
                           <template x-for="tenant in tenantLease.tenants" :key="tenant.id">
                             <tr class="odd:bg-white even:bg-slate-50/60">
@@ -1218,6 +1261,7 @@
                               <td class="px-4 py-3 text-slate-700" x-text="tenant.email"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="tenant.id_number || '-'"></td>
                               <td class="px-4 py-3 text-slate-700" x-text="tenantUnitLabel(tenant.id)"></td>
+                              <td class="px-4 py-3 text-slate-700" x-text="tenantPropertyLabelFromId(tenant.id)"></td>
                               <td class="px-4 py-3">
                                 <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="tenant.invite_accepted ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-amber-700'" x-text="tenant.invite_accepted ? 'Accepted' : 'Pending'"></span>
                               </td>
@@ -2548,6 +2592,7 @@
             activeLandlords: 0
           },
           financeForm: {
+            id: '',
             landlordId: '',
             amount: 0,
             paidAt: '',
@@ -2586,7 +2631,8 @@
             maintenanceResolved: 0
           },
           recentPayments: [],
-          leaseExpirations: []
+          leaseExpirations: [],
+          selectedPayment: null
         },
         propertyUnit: {
           loading: false,
@@ -3285,6 +3331,7 @@
         resetAdminFinanceForm() {
           const today = this.toIsoDate(new Date());
           this.admin.financeForm = {
+            id: '',
             landlordId: '',
             amount: 0,
             paidAt: today,
@@ -3299,17 +3346,20 @@
           this.admin.message = '';
           this.admin.saving = true;
 
-          const { error } = await supabaseClient
-            .from('platform_payments')
-            .insert({
-              landlord_id: this.admin.financeForm.landlordId,
-              amount_paid: Number(this.admin.financeForm.amount || 0),
-              paid_at: this.admin.financeForm.paidAt,
-              period_start: this.admin.financeForm.periodStart,
-              period_end: this.admin.financeForm.periodEnd,
-              notes: this.admin.financeForm.notes || null,
-              recorded_by: this.profile.id
-            });
+          const payload = {
+            landlord_id: this.admin.financeForm.landlordId,
+            amount_paid: Number(this.admin.financeForm.amount || 0),
+            paid_at: this.admin.financeForm.paidAt,
+            period_start: this.admin.financeForm.periodStart,
+            period_end: this.admin.financeForm.periodEnd,
+            notes: this.admin.financeForm.notes || null,
+            recorded_by: this.profile.id
+          };
+          const query = this.admin.financeForm.id
+            ? supabaseClient.from('platform_payments').update(payload).eq('id', this.admin.financeForm.id)
+            : supabaseClient.from('platform_payments').insert(payload);
+
+          const { error } = await query;
 
           if (error) {
             this.admin.error = error.message;
@@ -3317,9 +3367,47 @@
             return;
           }
 
-          this.admin.message = 'Payment recorded.';
+          this.admin.message = this.admin.financeForm.id ? 'Payment updated.' : 'Payment recorded.';
           this.admin.saving = false;
           this.resetAdminFinanceForm();
+          await this.loadSuperAdminData();
+        },
+
+        editPlatformPayment(payment) {
+          this.admin.error = '';
+          this.admin.message = '';
+          this.admin.financeForm = {
+            id: payment.id,
+            landlordId: payment.landlord_id,
+            amount: Number(payment.amount_paid || 0),
+            paidAt: String(payment.paid_at || '').slice(0, 10),
+            periodStart: String(payment.period_start || '').slice(0, 10),
+            periodEnd: String(payment.period_end || '').slice(0, 10),
+            notes: payment.notes || ''
+          };
+        },
+
+        async deletePlatformPayment(payment) {
+          if (!payment?.id) return;
+          if (!window.confirm('Delete this platform payment record?')) return;
+
+          this.admin.error = '';
+          this.admin.message = '';
+          this.admin.saving = true;
+          const { error } = await supabaseClient
+            .from('platform_payments')
+            .delete()
+            .eq('id', payment.id);
+
+          if (error) {
+            this.admin.error = error.message;
+            this.admin.saving = false;
+            return;
+          }
+
+          if (this.admin.financeForm.id === payment.id) this.resetAdminFinanceForm();
+          this.admin.message = 'Payment deleted.';
+          this.admin.saving = false;
           await this.loadSuperAdminData();
         },
 
@@ -3671,13 +3759,13 @@
             paymentAccess
               ? supabaseClient
                 .from('payments')
-                .select('id, amount_paid, payment_date, payment_method, created_at, leases(tenants(full_name), units(unit_number))')
+                .select('id, lease_id, submission_id, amount_paid, payment_date, payment_method, rent_period_start, rent_period_end, rent_period_label, notes, receipt_number, proof_file_path, proof_file_name, proof_file_size, proof_file_uploaded_by, proof_file_uploaded_at, recorded_by, created_at, payment_submissions(id, proof_image_url, proof_image_path, proof_image_name, proof_image_size), leases(id, monthly_rent, tenants(id, full_name, email), units(id, unit_number, property_id, properties(id, name, address, city)))')
                 .order('payment_date', { ascending: false })
                 .limit(8)
               : Promise.resolve({ data: [], error: null }),
             supabaseClient
               .from('leases')
-              .select('id, end_date, tenants(full_name), units(unit_number)')
+              .select('id, end_date, tenants(full_name), units(unit_number, properties(name))')
               .eq('status', 'active')
               .gte('end_date', today)
               .order('end_date', { ascending: true })
@@ -3708,18 +3796,26 @@
             maintenanceResolved: maintenanceRows.filter(request => request.status === 'resolved').length
           };
 
-          this.dashboard.recentPayments = (paymentsResult.data || []).map(payment => ({
-            id: payment.id,
-            tenant: payment.leases?.tenants?.full_name || '-',
-            unit: payment.leases?.units?.unit_number || '-',
-            amount: payment.amount_paid,
-            date: payment.payment_date || payment.created_at,
-            method: payment.payment_method
-          }));
+          this.dashboard.recentPayments = (paymentsResult.data || []).map(payment => {
+            const normalized = this.normalizePayment(payment);
+            const lease = normalized.lease || {};
+            const unit = lease.unit || {};
+            const property = unit.properties || unit.property || {};
+            return {
+              ...normalized,
+              tenant: lease.tenant?.full_name || '-',
+              property: property.name || '-',
+              unit: unit.unit_number || '-',
+              amount: normalized.amount_paid,
+              date: normalized.payment_date || normalized.created_at,
+              method: normalized.payment_method
+            };
+          });
 
           this.dashboard.leaseExpirations = (leasesResult.data || []).map(lease => ({
             id: lease.id,
             tenant: lease.tenants?.full_name || '-',
+            property: lease.units?.properties?.name || '-',
             unit: lease.units?.unit_number || '-',
             endDate: lease.end_date,
             daysRemaining: this.daysUntil(lease.end_date)
@@ -3739,6 +3835,10 @@
           if (days <= 7) return 'bg-red-100 text-red-700';
           if (days <= 30) return 'bg-yellow-100 text-amber-700';
           return 'bg-emerald-100 text-emerald-700';
+        },
+
+        viewDashboardPayment(payment) {
+          this.dashboard.selectedPayment = payment;
         },
 
         subscriptionDashboardLabel() {
@@ -4056,6 +4156,21 @@
           this.propertyUnit.selectedUnit = unit;
           this.propertyUnit.detailMode = '';
           await this.loadUnitDetail(unit);
+        },
+
+        async viewCurrentUnitLease() {
+          const lease = this.propertyUnit.currentLease;
+          if (!lease) return;
+
+          await this.navigate('leases');
+          const selectedLease = this.tenantLease.leases.find(row => row.id === lease.id) || {
+            ...lease,
+            unit: {
+              ...this.propertyUnit.selectedUnit,
+              properties: this.propertyUnit.selectedUnit?.property || this.propertyUnit.properties.find(property => property.id === this.propertyUnit.selectedUnit?.property_id) || null
+            }
+          };
+          await this.viewLease(selectedLease);
         },
 
         async loadUnitDetail(unit) {
@@ -5700,6 +5815,11 @@
           return lease ? this.leaseUnitLabel(lease) : '-';
         },
 
+        tenantPropertyLabelFromId(tenantId) {
+          const lease = this.tenantActiveLease(tenantId);
+          return lease ? this.leasePropertyLabel(lease) : '-';
+        },
+
         leaseUnitLabel(lease) {
           return lease?.unit?.unit_number || lease?.units?.unit_number || '-';
         },
@@ -6782,6 +6902,9 @@
             maintenanceInProgress: 0,
             maintenanceResolved: 0
           };
+          this.dashboard.recentPayments = [];
+          this.dashboard.leaseExpirations = [];
+          this.dashboard.selectedPayment = null;
           this.finance = {
             loading: false,
             error: '',
