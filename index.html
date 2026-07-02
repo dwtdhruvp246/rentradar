@@ -335,7 +335,7 @@
                           <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openEditLandlord(row)">Edit</button>
                           <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openSubscriptionModal(row)">Manage Subscription</button>
                           <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="suspendLandlord(row)">Suspend</button>
-                          <button class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50" type="button" @click="deleteLandlord(row)">Delete</button>
+                          <button class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50" type="button" @click="deleteLandlord(row)">Archive</button>
                           <button x-show="row.invite_link && !row.accepted" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100" type="button" @click="copyText(row.invite_link)">Copy Invite</button>
                         </div>
                       </td>
@@ -897,7 +897,7 @@
                         </div>
                         <div class="mt-5 flex flex-wrap gap-2">
                           <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="openPropertyUnits(property.id)">Open Units</button>
-                          <button x-show="canManageProperties()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteProperty(property)">Delete</button>
+                          <button x-show="canManageProperties()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteProperty(property)">Archive</button>
                         </div>
                       </article>
                     </template>
@@ -979,7 +979,7 @@
                                   <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewUnit(unit)">View</button>
                                   <button x-show="canManageLeases() && unit.status === 'vacant'" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100" type="button" @click="prepareAssignTenant(unit)">Assign Tenant</button>
                                   <button x-show="canManageLeases() && unit.status === 'occupied'" class="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-yellow-100" type="button" @click="markUnitVacant(unit)">Mark Vacant</button>
-                                  <button x-show="canManageProperties()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteUnit(unit)">Delete</button>
+                                  <button x-show="canManageProperties()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteUnit(unit)">Archive</button>
                                 </div>
                               </td>
                             </tr>
@@ -1000,7 +1000,7 @@
                         <button x-show="canViewFinancials()" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="prepareUnitPayment">Log Payment</button>
                         <button x-show="canManageLeases()" class="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600" type="button" @click="prepareAssignTenant(propertyUnit.selectedUnit)">Change Tenant</button>
                         <button x-show="canManageLeases() && propertyUnit.selectedUnit?.status === 'occupied'" class="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-yellow-100" type="button" @click="markUnitVacant(propertyUnit.selectedUnit)">Mark Vacant</button>
-                        <button x-show="canManageProperties()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteUnit(propertyUnit.selectedUnit)">Delete Unit</button>
+                        <button x-show="canManageProperties()" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteUnit(propertyUnit.selectedUnit)">Archive Unit</button>
                       </div>
                     </div>
 
@@ -1296,7 +1296,7 @@
                               <td class="px-4 py-3">
                                 <div class="flex flex-wrap gap-2">
                                   <button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewTenant(tenant)">View</button>
-                                  <button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteTenant(tenant)">Delete</button>
+                                  <button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteTenant(tenant)">Archive</button>
                                 </div>
                               </td>
                             </tr>
@@ -1312,7 +1312,7 @@
                         <h2 class="text-lg font-bold text-slate-900" x-text="tenantLease.selectedTenant?.full_name || 'Tenant Detail'"></h2>
                         <p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedTenant?.email || ''"></p>
                       </div>
-                      <button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteTenant(tenantLease.selectedTenant)">Delete Tenant</button>
+                      <button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteTenant(tenantLease.selectedTenant)">Archive Tenant</button>
                     </div>
                     <div class="grid gap-6 xl:grid-cols-2">
                       <section class="overflow-hidden rounded-lg border border-slate-200">
@@ -1323,7 +1323,7 @@
                             <tbody class="divide-y divide-slate-200">
                               <template x-if="tenantLease.selectedTenantLeases.length === 0"><tr><td class="px-4 py-6 text-center text-sm text-slate-500" colspan="5">No leases.</td></tr></template>
                               <template x-for="lease in tenantLease.selectedTenantLeases" :key="lease.id">
-                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3"><button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Delete</button></td></tr>
+                                <tr><td class="px-4 py-3 font-semibold text-slate-900" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3"><button x-show="profile?.role === 'landlord' && lease.status === 'active'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Terminate</button></td></tr>
                               </template>
                             </tbody>
                           </table>
@@ -1422,7 +1422,7 @@
                         <tbody class="divide-y divide-slate-200">
                           <template x-if="!tenantLease.loading && tenantLease.leases.length === 0"><tr><td class="px-4 py-8 text-center text-sm text-slate-500" colspan="8">No leases yet.</td></tr></template>
                           <template x-for="lease in tenantLease.leases" :key="lease.id">
-                            <tr class="odd:bg-white even:bg-slate-50/60"><td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant?.full_name || '-'"></td><td class="px-4 py-3" x-text="leasePropertyLabel(lease)"></td><td class="px-4 py-3" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3" x-text="leaseDocumentLabel(lease)"></td><td class="px-4 py-3"><div class="flex flex-wrap gap-2"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewLease(lease)">View</button><button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Delete</button></div></td></tr>
+                            <tr class="odd:bg-white even:bg-slate-50/60"><td class="px-4 py-3 font-semibold text-slate-900" x-text="lease.tenant?.full_name || '-'"></td><td class="px-4 py-3" x-text="leasePropertyLabel(lease)"></td><td class="px-4 py-3" x-text="leaseUnitLabel(lease)"></td><td class="px-4 py-3" x-text="`${formatDate(lease.start_date)} - ${formatDate(lease.end_date)}`"></td><td class="px-4 py-3" x-text="formatCurrency(lease.monthly_rent)"></td><td class="px-4 py-3" x-text="titleCase(lease.status)"></td><td class="px-4 py-3" x-text="leaseDocumentLabel(lease)"></td><td class="px-4 py-3"><div class="flex flex-wrap gap-2"><button class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" type="button" @click="viewLease(lease)">View</button><button x-show="profile?.role === 'landlord' && lease.status === 'active'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(lease)">Terminate</button></div></td></tr>
                           </template>
                         </tbody>
                       </table>
@@ -1430,7 +1430,7 @@
                   </section>
 
                   <section x-show="tenantLease.selectedLease" class="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
-                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 class="text-lg font-bold text-slate-900">Lease Detail</h2><p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedLease ? `${tenantLease.selectedLease.tenant?.full_name || '-'} - ${leaseUnitLabel(tenantLease.selectedLease)}` : ''"></p></div><button x-show="profile?.role === 'landlord'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(tenantLease.selectedLease)">Delete Lease</button></div>
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 class="text-lg font-bold text-slate-900">Lease Detail</h2><p class="mt-1 text-sm text-slate-500" x-text="tenantLease.selectedLease ? `${tenantLease.selectedLease.tenant?.full_name || '-'} - ${leaseUnitLabel(tenantLease.selectedLease)}` : ''"></p></div><button x-show="profile?.role === 'landlord' && tenantLease.selectedLease?.status === 'active'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" type="button" @click="deleteLease(tenantLease.selectedLease)">Terminate Lease</button></div>
                     <div class="grid gap-4 lg:grid-cols-4">
                       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Dates</p><p class="mt-2 font-semibold text-slate-900" x-text="tenantLease.selectedLease ? `${formatDate(tenantLease.selectedLease.start_date)} - ${formatDate(tenantLease.selectedLease.end_date)}` : '-'"></p></div>
                       <div class="rounded-lg border border-slate-200 bg-slate-50 p-4"><p class="text-sm text-slate-500">Monthly Rent</p><p class="mt-2 font-semibold text-slate-900" x-text="formatCurrency(tenantLease.selectedLease?.monthly_rent)"></p></div>
@@ -2830,6 +2830,7 @@
           loading: false,
           saving: false,
           error: '',
+          tenantRows: [],
           tenantRow: null,
           activeLease: null,
           leases: [],
@@ -3031,15 +3032,86 @@
           this.invite.submitting = true;
           await supabaseClient.auth.signOut();
 
+          const tokenRow = this.invite.tokenRow;
+          const metadata = tokenRow.metadata || {};
+          const inviteEmail = tokenRow.email || this.invite.form.email;
+          const tenantProfilePayload = userId => ({
+            id: userId,
+            landlord_id: null,
+            full_name: this.invite.form.fullName || metadata.full_name || metadata.fullName || inviteEmail,
+            phone: metadata.phone || null,
+            email: inviteEmail,
+            role: 'tenant'
+          });
+
+          if (tokenRow.role === 'tenant') {
+            const { data: existingSignInData, error: existingSignInError } = await supabaseClient.auth.signInWithPassword({
+              email: inviteEmail,
+              password: this.invite.form.password
+            });
+
+            if (!existingSignInError && existingSignInData?.user) {
+              const { data: existingProfile, error: existingProfileError } = await supabaseClient
+                .from('profiles')
+                .select('id, role, email')
+                .eq('id', existingSignInData.user.id)
+                .maybeSingle();
+
+              if (existingProfileError) {
+                await supabaseClient.auth.signOut();
+                this.invite.submitError = existingProfileError.message;
+                this.invite.submitting = false;
+                return;
+              }
+
+              if (!existingProfile) {
+                const { error: profileRepairError } = await supabaseClient
+                  .from('profiles')
+                  .insert(tenantProfilePayload(existingSignInData.user.id));
+
+                if (profileRepairError) {
+                  await supabaseClient.auth.signOut();
+                  this.invite.submitError = profileRepairError.message;
+                  this.invite.submitting = false;
+                  return;
+                }
+              } else if (existingProfile.role !== 'tenant') {
+                await supabaseClient.auth.signOut();
+                this.invite.submitError = 'This email is already used by a non-tenant RentRadar account. Use a different tenant email.';
+                this.invite.submitting = false;
+                return;
+              }
+
+              const { error: tenantLinkError } = await supabaseClient.rpc('accept_tenant_invite', {
+                p_invite_id: tokenRow.id
+              });
+
+              if (tenantLinkError) {
+                await supabaseClient.auth.signOut();
+                this.invite.submitError = tenantLinkError.message;
+                this.invite.submitting = false;
+                return;
+              }
+
+              await supabaseClient.auth.signOut();
+              sessionStorage.setItem('rentradar_success', 'Invite accepted. Please sign in with your existing tenant password.');
+              this.goToLogin(inviteEmail);
+              return;
+            }
+          }
+
           const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
-            email: this.invite.form.email,
+            email: inviteEmail,
             password: this.invite.form.password
           });
 
           if (signUpError) {
+            const alreadyRegistered = /already registered|already exists|user exists/i.test(signUpError.message);
             this.invite.submitError = signUpError.message.includes('Signups not allowed')
               ? 'Supabase Auth signups are disabled for this project. Enable Email signups in Supabase Auth settings, then retry this invite link.'
-              : signUpError.message;
+              : alreadyRegistered && tokenRow.role === 'tenant'
+                ? 'This tenant email already has a RentRadar login. Enter the existing password to accept this invite, or reset the password first.'
+                : signUpError.message;
             this.invite.submitting = false;
             return;
           }
@@ -3050,14 +3122,12 @@
             return;
           }
 
-          const tokenRow = this.invite.tokenRow;
-          const metadata = tokenRow.metadata || {};
           const profilePayload = {
             id: signUpData.user.id,
-            landlord_id: tokenRow.role === 'landlord' ? null : tokenRow.landlord_id,
-            full_name: this.invite.form.fullName || metadata.full_name || metadata.fullName || tokenRow.email,
+            landlord_id: tokenRow.role === 'staff' ? tokenRow.landlord_id : null,
+            full_name: this.invite.form.fullName || metadata.full_name || metadata.fullName || inviteEmail,
             phone: metadata.phone || null,
-            email: tokenRow.email,
+            email: inviteEmail,
             role: tokenRow.role
           };
 
@@ -3224,6 +3294,7 @@
               .from('profiles')
               .select('id, full_name, phone, email, role, created_at')
               .eq('role', 'landlord')
+              .is('archived_at', null)
               .order('created_at', { ascending: false }),
             supabaseClient
               .from('invite_tokens')
@@ -3238,10 +3309,12 @@
             supabaseClient
               .from('profiles')
               .select('id, landlord_id, role')
-              .eq('role', 'staff'),
+              .eq('role', 'staff')
+              .is('archived_at', null),
             supabaseClient
               .from('tenants')
-              .select('id, landlord_id'),
+              .select('id, landlord_id')
+              .is('archived_at', null),
             supabaseClient
               .from('platform_payments')
               .select('id, landlord_id, amount_paid, paid_at, period_start, period_end, notes, recorded_by, created_at, landlord:profiles!platform_payments_landlord_id_fkey(id, full_name, email)')
@@ -3623,7 +3696,7 @@
         },
 
         async deleteLandlord(row) {
-          const confirmed = window.confirm(`Delete ${row.full_name}? This removes the landlord workspace, properties, units, tenants, leases, payments, maintenance, staff, and pending invite data.`);
+          const confirmed = window.confirm(`Archive ${row.full_name}? They will no longer appear as an active landlord, but their payment, lease, and property history will stay saved.`);
           if (!confirmed) return;
 
           this.admin.error = '';
@@ -3638,7 +3711,7 @@
             return;
           }
 
-          this.admin.message = 'Landlord deleted.';
+          this.admin.message = 'Landlord archived. Financial and lease records were kept.';
           await this.loadSuperAdminData();
         },
 
@@ -3783,8 +3856,8 @@
           const today = this.toIsoDate(new Date());
 
           const queryResults = await Promise.all([
-            supabaseClient.from('properties').select('id', { count: 'exact', head: true }),
-            supabaseClient.from('units').select('id, status'),
+            supabaseClient.from('properties').select('id', { count: 'exact', head: true }).is('archived_at', null),
+            supabaseClient.from('units').select('id, status').is('archived_at', null),
             paymentAccess
               ? supabaseClient.from('payment_submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending')
               : Promise.resolve({ count: 0, error: null }),
@@ -3805,6 +3878,7 @@
             supabaseClient
               .from('maintenance_requests')
               .select('id, status')
+              .is('archived_at', null)
           ]);
 
           const [propertiesResult, unitsResult, pendingResult, paymentsResult, leasesResult, maintenanceResult] = queryResults;
@@ -3943,10 +4017,10 @@
             ? 'id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone)'
             : 'id, unit_id, tenant_id, landlord_id, start_date, end_date, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone)';
           const results = await Promise.all([
-            supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').order('created_at', { ascending: false }),
-            supabaseClient.from('units').select(unitSelect).order('created_at', { ascending: false }),
+            supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').is('archived_at', null).order('created_at', { ascending: false }),
+            supabaseClient.from('units').select(unitSelect).is('archived_at', null).order('created_at', { ascending: false }),
             canLoadTenants
-              ? supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_accepted, created_at').order('full_name', { ascending: true })
+              ? supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_accepted, created_at').is('archived_at', null).order('full_name', { ascending: true })
               : Promise.resolve({ data: [], error: null }),
             canLoadLeases
               ? supabaseClient.from('leases').select(leaseSelect).order('end_date', { ascending: true })
@@ -4007,13 +4081,47 @@
 
         async deleteProperty(property) {
           if (!property) return;
-          const confirmed = window.confirm(`Delete ${property.name}? This also deletes its units, leases, payments, and maintenance records.`);
+          const confirmed = window.confirm(`Archive ${property.name}? It will be removed from active property lists, but units, leases, payments, and maintenance records will stay saved.`);
           if (!confirmed) return;
 
           this.propertyUnit.error = '';
+          const propertyUnitIds = this.propertyUnit.units
+            .filter(unit => unit.property_id === property.id)
+            .map(unit => unit.id);
+
+          if (propertyUnitIds.length > 0) {
+            const { error: leaseError } = await supabaseClient
+              .from('leases')
+              .update({ status: 'terminated' })
+              .in('unit_id', propertyUnitIds)
+              .eq('status', 'active');
+
+            if (leaseError) {
+              this.propertyUnit.error = leaseError.message;
+              return;
+            }
+          }
+
+          const { error: unitError } = await supabaseClient
+            .from('units')
+            .update({
+              status: 'vacant',
+              archived_at: new Date().toISOString(),
+              archived_by: this.profile.id
+            })
+            .eq('property_id', property.id);
+
+          if (unitError) {
+            this.propertyUnit.error = unitError.message;
+            return;
+          }
+
           const { error } = await supabaseClient
             .from('properties')
-            .delete()
+            .update({
+              archived_at: new Date().toISOString(),
+              archived_by: this.profile.id
+            })
             .eq('id', property.id);
 
           if (error) {
@@ -4070,13 +4178,28 @@
 
         async deleteUnit(unit) {
           if (!unit) return;
-          const confirmed = window.confirm(`Delete unit ${unit.unit_number}? This also deletes linked leases, payments, and maintenance records.`);
+          const confirmed = window.confirm(`Archive unit ${unit.unit_number}? It will be removed from active unit lists, but linked leases, payments, and maintenance records will stay saved.`);
           if (!confirmed) return;
 
           this.propertyUnit.error = '';
+          const { error: leaseError } = await supabaseClient
+            .from('leases')
+            .update({ status: 'terminated' })
+            .eq('unit_id', unit.id)
+            .eq('status', 'active');
+
+          if (leaseError) {
+            this.propertyUnit.error = leaseError.message;
+            return;
+          }
+
           const { error } = await supabaseClient
             .from('units')
-            .delete()
+            .update({
+              status: 'vacant',
+              archived_at: new Date().toISOString(),
+              archived_by: this.profile.id
+            })
             .eq('id', unit.id);
 
           if (error) {
@@ -4219,7 +4342,7 @@
             activeLease && this.canViewFinancials()
               ? supabaseClient.from('payments').select('id, lease_id, amount_paid, payment_date, payment_method, rent_period_start, rent_period_end, rent_period_label, notes, receipt_number, proof_file_path, proof_file_name, proof_file_size, proof_file_uploaded_by, proof_file_uploaded_at, recorded_by, created_at, payment_submissions(id, proof_image_url, proof_image_path, proof_image_name, proof_image_size)').eq('lease_id', activeLease.id).order('payment_date', { ascending: false })
               : Promise.resolve({ data: [], error: null }),
-            supabaseClient.from('maintenance_requests').select('id, unit_id, lease_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at').eq('unit_id', unit.id).order('created_at', { ascending: false })
+            supabaseClient.from('maintenance_requests').select('id, unit_id, lease_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at').eq('unit_id', unit.id).is('archived_at', null).order('created_at', { ascending: false })
           ]);
 
           const firstError = paymentsResult.error || maintenanceResult.error;
@@ -4950,14 +5073,17 @@
             supabaseClient
               .from('maintenance_requests')
               .select('id, unit_id, lease_id, landlord_id, submitted_by_profile_id, assigned_to_staff_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at')
+              .is('archived_at', null)
               .order('created_at', { ascending: false }),
             supabaseClient
               .from('properties')
               .select('id, name, address, city')
+              .is('archived_at', null)
               .order('name', { ascending: true }),
             supabaseClient
               .from('units')
               .select('id, property_id, unit_number, status, properties(id, name, address, city)')
+              .is('archived_at', null)
               .order('unit_number', { ascending: true }),
             supabaseClient
               .from('leases')
@@ -5125,7 +5251,7 @@
 
         async deleteMaintenanceRequest(request) {
           if (!request) return;
-          const confirmed = window.confirm('Delete this maintenance request?');
+          const confirmed = window.confirm('Archive this maintenance request? Its details and work notes will stay saved.');
           if (!confirmed) return;
 
           this.maintenance.error = '';
@@ -5133,7 +5259,10 @@
 
           const { error } = await supabaseClient
             .from('maintenance_requests')
-            .delete()
+            .update({
+              archived_at: new Date().toISOString(),
+              archived_by: this.profile.id
+            })
             .eq('id', request.id);
 
           if (error) {
@@ -5198,8 +5327,8 @@
           this.staff.error = '';
 
           const [propertiesResult, profilesResult, permissionsResult, invitesResult] = await Promise.all([
-            supabaseClient.from('properties').select('id, name, address, city').order('name', { ascending: true }),
-            supabaseClient.from('profiles').select('id, full_name, phone, email, role, created_at').eq('role', 'staff').order('created_at', { ascending: false }),
+            supabaseClient.from('properties').select('id, name, address, city').is('archived_at', null).order('name', { ascending: true }),
+            supabaseClient.from('profiles').select('id, full_name, phone, email, role, created_at').eq('role', 'staff').is('archived_at', null).order('created_at', { ascending: false }),
             supabaseClient.from('staff_permissions').select('id, landlord_id, staff_profile_id, all_properties, property_ids, can_view_tenants, can_manage_maintenance, can_view_payments, can_verify_payments, can_manage_leases, invited_at, accepted_at'),
             supabaseClient.from('invite_tokens').select('id, token, email, role, landlord_id, metadata, used, expires_at, created_at').eq('role', 'staff').eq('used', false).order('created_at', { ascending: false })
           ]);
@@ -5464,7 +5593,8 @@
             .from('tenants')
             .select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_accepted, created_at')
             .eq('profile_id', this.profile.id)
-            .limit(1);
+            .is('archived_at', null)
+            .order('created_at', { ascending: false });
 
           if (tenantError) {
             this.tenant.error = tenantError.message;
@@ -5472,19 +5602,25 @@
             return;
           }
 
-          const tenantRow = tenantRows?.[0] || null;
-          this.tenant.tenantRow = tenantRow;
+          this.tenant.tenantRows = tenantRows || [];
 
-          if (!tenantRow) {
+          if (this.tenant.tenantRows.length === 0) {
+            this.tenant.tenantRow = null;
+            this.tenant.activeLease = null;
+            this.tenant.leases = [];
+            this.tenant.payments = [];
+            this.tenant.paymentSubmissions = [];
+            this.tenant.maintenanceRequests = [];
             this.tenant.error = 'No tenant record is linked to this account yet.';
             this.tenant.loading = false;
             return;
           }
 
+          const tenantIds = this.tenant.tenantRows.map(row => row.id);
           const { data: leases, error: leaseError } = await supabaseClient
             .from('leases')
             .select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, units(id, unit_number, property_id, properties(id, name, address, city))')
-            .eq('tenant_id', tenantRow.id)
+            .in('tenant_id', tenantIds)
             .order('created_at', { ascending: false });
 
           if (leaseError) {
@@ -5495,6 +5631,7 @@
 
           this.tenant.leases = (leases || []).map(lease => this.normalizeLease(lease));
           this.tenant.activeLease = this.tenant.leases.find(lease => lease.status === 'active') || this.tenant.leases[0] || null;
+          this.tenant.tenantRow = this.tenant.tenantRows.find(row => row.id === this.tenant.activeLease?.tenant_id) || this.tenant.tenantRows[0] || null;
           const leaseIds = this.tenant.leases.map(lease => lease.id);
 
           if (leaseIds.length === 0) {
@@ -5520,6 +5657,7 @@
               .from('maintenance_requests')
               .select('id, unit_id, lease_id, landlord_id, submitted_by_profile_id, description, photo_url, photo_path, photo_name, photo_size, photo_uploaded_by, photo_uploaded_at, status, priority, resolution_notes, created_at, resolved_at')
               .in('lease_id', leaseIds)
+              .is('archived_at', null)
               .order('created_at', { ascending: false })
           ]);
 
@@ -5704,9 +5842,9 @@
           this.tenantLease.error = '';
 
           const results = await Promise.all([
-            supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').order('name', { ascending: true }),
-            supabaseClient.from('units').select('id, property_id, unit_number, bedrooms, bathrooms, monthly_rent, status, properties(id, name, address, city)').order('unit_number', { ascending: true }),
-            supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_token, invite_accepted, created_at').order('created_at', { ascending: false }),
+            supabaseClient.from('properties').select('id, landlord_id, name, address, city, created_at').is('archived_at', null).order('name', { ascending: true }),
+            supabaseClient.from('units').select('id, property_id, unit_number, bedrooms, bathrooms, monthly_rent, status, properties(id, name, address, city)').is('archived_at', null).order('unit_number', { ascending: true }),
+            supabaseClient.from('tenants').select('id, landlord_id, profile_id, full_name, phone, email, id_number, invite_token, invite_accepted, created_at').is('archived_at', null).order('created_at', { ascending: false }),
             supabaseClient.from('leases').select('id, unit_id, tenant_id, landlord_id, start_date, end_date, monthly_rent, deposit_amount, deposit_paid, lease_document_url, lease_document_path, lease_document_name, lease_document_size, lease_document_uploaded_by, lease_document_uploaded_at, status, created_at, tenants(id, full_name, email, phone), units(id, unit_number, property_id, properties(id, name, address, city))').order('created_at', { ascending: false })
           ]);
 
@@ -5795,7 +5933,7 @@
 
         async deleteTenant(tenant) {
           if (!tenant) return;
-          const confirmed = window.confirm(`Delete ${tenant.full_name}? This also deletes their login account, linked leases, payment history, submissions, and maintenance records.`);
+          const confirmed = window.confirm(`Archive ${tenant.full_name}? They will be removed from active tenant lists and their active lease will be terminated, but payment and lease history will stay saved.`);
           if (!confirmed) return;
 
           this.tenantLease.error = '';
@@ -5820,13 +5958,13 @@
 
         async deleteLease(lease) {
           if (!lease) return;
-          const confirmed = window.confirm(`Delete this lease for ${lease.tenant?.full_name || 'the tenant'}? Linked payments, submissions, and maintenance references may also be removed.`);
+          const confirmed = window.confirm(`Terminate this lease for ${lease.tenant?.full_name || 'the tenant'}? Payment history, submissions, documents, and maintenance references will stay saved.`);
           if (!confirmed) return;
 
           this.tenantLease.error = '';
           const { error } = await supabaseClient
             .from('leases')
-            .delete()
+            .update({ status: 'terminated' })
             .eq('id', lease.id);
 
           if (error) {
@@ -5834,9 +5972,23 @@
             return;
           }
 
+          if (lease.unit_id) {
+            const { error: unitError } = await supabaseClient
+              .from('units')
+              .update({ status: 'vacant' })
+              .eq('id', lease.unit_id);
+
+            if (unitError) {
+              this.tenantLease.error = unitError.message;
+              return;
+            }
+          }
+
           if (this.tenantLease.selectedLease?.id === lease.id) {
-            this.tenantLease.selectedLease = null;
-            this.tenantLease.selectedLeasePayments = [];
+            this.tenantLease.selectedLease = {
+              ...this.tenantLease.selectedLease,
+              status: 'terminated'
+            };
           }
           await this.loadTenantLeaseData();
           await this.loadPropertyUnitData();
@@ -6660,6 +6812,14 @@
             return;
           }
 
+          if (profile.archived_at) {
+            await supabaseClient.auth.signOut();
+            this.authError = 'Your account has been archived. Please contact your landlord or RentRadar administrator.';
+            this.currentShell = 'login';
+            this.booting = false;
+            return;
+          }
+
           this.profile = profile;
 
           if (profile.role === 'super_admin') {
@@ -6958,6 +7118,7 @@
             loading: false,
             saving: false,
             error: '',
+            tenantRows: [],
             tenantRow: null,
             activeLease: null,
             leases: [],
@@ -6966,6 +7127,7 @@
             maintenanceRequests: [],
             paymentForm: {
               amount: 0,
+              rentPeriodKey: '',
               date: '',
               method: 'bank_transfer',
               reference: '',
